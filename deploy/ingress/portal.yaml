@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: atlas-portal
+  labels:
+    app.kubernetes.io/name: atlas-portal
+    app.kubernetes.io/part-of: heliantheon
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: atlas.heliannuuthus.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: atlas-portal
+                port:
+                  name: http
+
