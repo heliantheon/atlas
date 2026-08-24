@@ -93,9 +93,7 @@ export const applicationApi = {
   update: (domainId: string, appId: string, data: ApplicationUpdateRequest) =>
     request.patch(`/domains/${domainId}/applications/${appId}`, data),
   getSecret: (domainId: string, appId: string, type: ApplicationSecretType) =>
-    request.get<ApplicationSecret>(
-      `/domains/${domainId}/applications/${appId}/secrets/${type}`
-    ),
+    request.get<ApplicationSecret>(`/domains/${domainId}/applications/${appId}/secrets/${type}`),
   /** 该应用在各服务下被授予的权限（按服务聚合） */
   getServiceRelations: (domainId: string, appId: string) =>
     request.get<ApplicationServiceRelation[]>(
