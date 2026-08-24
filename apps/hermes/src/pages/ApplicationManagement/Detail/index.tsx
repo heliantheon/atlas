@@ -58,7 +58,7 @@ import { formatDateTime } from '@atlas/shared'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi } from '@/services'
-import type { Application, ApplicationIDPConfig } from '@/types'
+import type { Application, ApplicationClientSecret, ApplicationIDPConfig } from '@/types'
 import {
   validateAllowedOriginsArray,
   validateLogoutUrisArray,
@@ -368,6 +368,8 @@ export function Detail() {
   const [saving, setSaving] = useState(false)
   const [savingIdp, setSavingIdp] = useState(false)
   const [sortingIdp, setSortingIdp] = useState(false)
+  const [loadingClientSecret, setLoadingClientSecret] = useState(false)
+  const [clientSecret, setClientSecret] = useState<ApplicationClientSecret | null>(null)
 
   const settingsForm = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
@@ -520,6 +522,27 @@ export function Detail() {
     }
   }
 
+  const getClientSecret = async () => {
+    setLoadingClientSecret(true)
+    try {
+      const secret = await applicationApi.getClientSecret(domainId!, appId!)
+      setClientSecret(secret)
+    } catch {
+      toast.error('获取失败，请确认应用已创建密钥')
+    } finally {
+      setLoadingClientSecret(false)
+    }
+  }
+
+  const copyCredential = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(`${label}已复制`)
+    } catch {
+      toast.error(`复制${label}失败`)
+    }
+  }
+
   if (loading)
     return (
       <div className={styles.loading}>
@@ -656,6 +679,24 @@ export function Detail() {
             </TabsContent>
             <TabsContent value="config">
               <div className={`${styles.tabContent} grid gap-6 py-5`}>
+                <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="grid gap-1">
+                    <h2 className="text-sm font-medium">客户端凭证</h2>
+                    <p className="text-sm text-muted-foreground">
+                      获取可用于 Grafana 等机密 OAuth 客户端的 client secret。
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loadingClientSecret}
+                    onClick={() => void getClientSecret()}
+                  >
+                    {loadingClientSecret ? <LoaderCircle className="animate-spin" /> : <KeyRound />}
+                    获取 Secret
+                  </Button>
+                </div>
+                <div className={styles.sectionDivider} />
                 {uriFields.map(field => (
                   <Controller
                     key={field.name}
@@ -763,6 +804,51 @@ export function Detail() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={clientSecret !== null}
+        onOpenChange={open => {
+          if (!open) setClientSecret(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>客户端凭证</DialogTitle>
+            <DialogDescription>
+              将 client secret 保存到目标服务的密钥配置中。关闭后页面不会保留这份凭证。
+            </DialogDescription>
+          </DialogHeader>
+          {clientSecret ? (
+            <div className="grid gap-4">
+              {[
+                ['Client ID', clientSecret.client_id],
+                ['Client Secret', clientSecret.client_secret],
+              ].map(([label, value]) => (
+                <div key={label} className="grid gap-2">
+                  <span className="text-sm font-medium">{label}</span>
+                  <div className="flex gap-2">
+                    <Input value={value} readOnly className="font-mono" aria-label={label} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={`复制 ${label}`}
+                      onClick={() => void copyCredential(label, value)}
+                    >
+                      <Copy />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" onClick={() => setClientSecret(null)}>
+              完成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={idpOpen}

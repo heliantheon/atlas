@@ -50,6 +50,11 @@ export interface Application {
   updated_at: string
 }
 
+export interface ApplicationClientSecret {
+  client_id: string
+  client_secret: string
+}
+
 export interface ApplicationIDPConfig {
   app_id: string
   type: string
