@@ -8,6 +8,7 @@ import { configureAudiences, defaultScopeString } from '@atlas/shared'
 import { Toaster } from '@atlas/ui/toast'
 import App from './App'
 import '@atlas/ui/globals.css'
+import '@heliannuuthus/ui/styles.css'
 import './index.scss'
 
 dayjs.locale('zh-cn')
