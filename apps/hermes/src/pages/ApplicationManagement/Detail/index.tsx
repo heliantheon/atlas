@@ -58,7 +58,7 @@ import { formatDateTime } from '@atlas/shared'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi } from '@/services'
-import type { Application, ApplicationClientSecret, ApplicationIDPConfig } from '@/types'
+import type { Application, ApplicationIDPConfig, ApplicationSecret } from '@/types'
 import {
   validateAllowedOriginsArray,
   validateLogoutUrisArray,
@@ -369,7 +369,7 @@ export function Detail() {
   const [savingIdp, setSavingIdp] = useState(false)
   const [sortingIdp, setSortingIdp] = useState(false)
   const [loadingClientSecret, setLoadingClientSecret] = useState(false)
-  const [clientSecret, setClientSecret] = useState<ApplicationClientSecret | null>(null)
+  const [clientSecret, setClientSecret] = useState<ApplicationSecret | null>(null)
 
   const settingsForm = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
@@ -525,7 +525,7 @@ export function Detail() {
   const getClientSecret = async () => {
     setLoadingClientSecret(true)
     try {
-      const secret = await applicationApi.getClientSecret(domainId!, appId!)
+      const secret = await applicationApi.getSecret(domainId!, appId!, 'basic')
       setClientSecret(secret)
     } catch {
       toast.error('获取失败，请确认应用已创建密钥')
@@ -822,7 +822,7 @@ export function Detail() {
             <div className="grid gap-4">
               {[
                 ['Client ID', clientSecret.client_id],
-                ['Client Secret', clientSecret.client_secret],
+                ['Client Secret', clientSecret.secret],
               ].map(([label, value]) => (
                 <div key={label} className="grid gap-2">
                   <span className="text-sm font-medium">{label}</span>

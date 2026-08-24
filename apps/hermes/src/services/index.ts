@@ -7,7 +7,8 @@ import type {
   DomainIDP,
   Service,
   Application,
-  ApplicationClientSecret,
+  ApplicationSecret,
+  ApplicationSecretType,
   ApplicationIDPConfig,
   ApplicationIDPConfigCreateRequest,
   ApplicationIDPConfigUpdateRequest,
@@ -91,9 +92,9 @@ export const applicationApi = {
     request.post<Application>(`/domains/${domainId}/applications`, data),
   update: (domainId: string, appId: string, data: ApplicationUpdateRequest) =>
     request.patch(`/domains/${domainId}/applications/${appId}`, data),
-  getClientSecret: (domainId: string, appId: string) =>
-    request.get<ApplicationClientSecret>(
-      `/domains/${domainId}/applications/${appId}/client-secret`
+  getSecret: (domainId: string, appId: string, type: ApplicationSecretType) =>
+    request.get<ApplicationSecret>(
+      `/domains/${domainId}/applications/${appId}/secrets/${type}`
     ),
   /** 该应用在各服务下被授予的权限（按服务聚合） */
   getServiceRelations: (domainId: string, appId: string) =>
