@@ -50,7 +50,7 @@ export interface Application {
   updated_at: string
 }
 
-export type ApplicationSecretType = 'basic'
+export type ApplicationSecretType = 'client-secret'
 
 export interface ApplicationSecret {
   client_id: string

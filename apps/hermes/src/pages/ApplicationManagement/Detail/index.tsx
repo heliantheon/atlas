@@ -525,7 +525,7 @@ export function Detail() {
   const getClientSecret = async () => {
     setLoadingClientSecret(true)
     try {
-      const secret = await applicationApi.getSecret(domainId!, appId!, 'basic')
+      const secret = await applicationApi.getSecret(domainId!, appId!, 'client-secret')
       setClientSecret(secret)
     } catch {
       toast.error('获取失败，请确认应用已创建密钥')
