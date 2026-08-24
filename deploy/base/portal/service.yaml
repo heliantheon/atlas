@@ -1,16 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: atlas-portal
+  name: atlas
   labels:
-    app.kubernetes.io/name: atlas-portal
+    app.kubernetes.io/name: atlas
     app.kubernetes.io/part-of: heliantheon
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: atlas-portal
+    app.kubernetes.io/name: atlas
   ports:
     - name: http
       port: 8080
       targetPort: http
-

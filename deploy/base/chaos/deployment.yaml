@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: atlas
+  name: chaos-ui
   labels:
-    app.kubernetes.io/name: atlas
+    app.kubernetes.io/name: chaos-ui
     app.kubernetes.io/component: frontend
     app.kubernetes.io/part-of: heliantheon
 spec:
@@ -11,15 +11,15 @@ spec:
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app.kubernetes.io/name: atlas
+      app.kubernetes.io/name: chaos-ui
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: atlas
+        app.kubernetes.io/name: chaos-ui
         app.kubernetes.io/component: frontend
         app.kubernetes.io/part-of: heliantheon
     spec:
-      serviceAccountName: atlas
+      serviceAccountName: chaos-ui
       automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
@@ -31,8 +31,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: atlas
-          image: ghcr.io/heliantheon/atlas:unreleased
+        - name: chaos-ui
+          image: ghcr.io/heliantheon/chaos-ui:unreleased
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
