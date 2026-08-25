@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, LayoutDashboard, Settings, UploadCloud } from 'lucide-react'
+import { FileText, LayoutDashboard, ScrollText, Settings, UploadCloud } from 'lucide-react'
 import { Breadcrumb } from '@atlas/ui/breadcrumb'
 import { PRODUCT_BRAND_COLORS } from '@atlas/ui/brand-colors'
 import { Header } from '@atlas/ui/header'
@@ -19,6 +19,13 @@ const chaosMenus: SidebarMenuItem[] = [
     section: '内容管理',
   },
   { key: 'files', label: '文件管理', icon: <UploadCloud />, path: '/files' },
+  {
+    key: 'logs',
+    label: '日志检索',
+    icon: <ScrollText />,
+    path: '/logs',
+    section: '可观测性',
+  },
   { key: 'settings', label: '设置', icon: <Settings />, path: '/settings', bottom: true },
 ]
 
@@ -32,6 +39,7 @@ const breadcrumbConfig = {
   routeNameMap: {
     templates: '邮件模板',
     files: '文件管理',
+    logs: '日志检索',
     settings: '设置',
   },
 }

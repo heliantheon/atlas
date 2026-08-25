@@ -1,0 +1,402 @@
+.page {
+  --console: #121512;
+  --console-raised: #181c18;
+  --console-line: rgb(226 237 216 / 11%);
+  --console-text: #e2edd8;
+  --console-muted: #82907d;
+  --console-accent: #b8e7d1;
+  min-height: 100%;
+  padding: clamp(1rem, 2.5vw, 2.5rem);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--border) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--border) 30%, transparent) 1px, transparent 1px),
+    var(--background);
+  background-size: 32px 32px;
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 0 1.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.kicker {
+  margin-bottom: 0.65rem;
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.header h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 4vw, 4.2rem);
+  font-weight: 540;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.header p {
+  margin: 0.8rem 0 0;
+  color: var(--muted-foreground);
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  min-width: 190px;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+
+.connection strong,
+.connection small {
+  display: block;
+}
+
+.connection strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.connection small {
+  margin-top: 0.18rem;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.signal {
+  width: 10px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #8c9588;
+  box-shadow: 0 0 0 5px rgb(140 149 136 / 12%);
+}
+
+.connection[data-live='true'] .signal {
+  background: #42d392;
+  box-shadow: 0 0 0 5px rgb(66 211 146 / 15%);
+  animation: signal 1.8s ease-out infinite;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns:
+    minmax(130px, 0.7fr) minmax(120px, 0.55fr) minmax(180px, 1fr) minmax(220px, 1.25fr)
+    auto;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--card);
+}
+
+.controls label > span {
+  display: block;
+  margin: 0 0 0.45rem 0.2rem;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.controls input,
+.controls select {
+  width: 100%;
+  height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.controls select {
+  padding: 0 0.8rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.windowBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-top: 0;
+  background: color-mix(in srgb, var(--card) 70%, var(--background));
+  color: var(--muted-foreground);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.presets {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.presets button {
+  min-width: 2.7rem;
+  padding: 0.35rem 0.55rem;
+  border: 0;
+  border-radius: 0.4rem;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.presets button[aria-pressed='true'] {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.console {
+  min-height: 540px;
+  overflow: hidden;
+  border: 1px solid #242a24;
+  border-top: 0;
+  border-radius: 0 0 1.25rem 1.25rem;
+  color: var(--console-text);
+  background: var(--console);
+  box-shadow: 0 24px 60px rgb(13 17 14 / 18%);
+}
+
+.consoleHeader,
+.recordSummary {
+  display: grid;
+  grid-template-columns: 144px 72px 110px minmax(280px, 1fr) 96px 18px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.consoleHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--console-line);
+  color: var(--console-muted);
+  background: #0e110e;
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+}
+
+.rows {
+  max-height: min(68vh, 760px);
+  overflow: auto;
+}
+
+.record {
+  border-bottom: 1px solid var(--console-line);
+}
+
+.recordSummary {
+  width: 100%;
+  padding: 0.72rem 1rem;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recordSummary:hover,
+.recordSummary[aria-expanded='true'] {
+  background: var(--console-raised);
+}
+
+.recordSummary:focus-visible {
+  outline: 2px solid var(--console-accent);
+  outline-offset: -2px;
+}
+
+.recordSummary time,
+.recordSummary code,
+.level,
+.service,
+.message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recordSummary time,
+.recordSummary code,
+.message {
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.72rem;
+}
+
+.recordSummary time,
+.recordSummary code {
+  color: var(--console-muted);
+}
+
+.level,
+.service {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.level {
+  color: #8fb0ff;
+}
+
+.record[data-level='WARN'] .level {
+  color: #f4c66a;
+}
+
+.record[data-level='ERROR'] .level {
+  color: #ff7b72;
+}
+
+.record[data-level='DEBUG'] .level {
+  color: #a5a9a3;
+}
+
+.service {
+  color: var(--console-accent);
+}
+
+.detail {
+  padding: 0 1rem 1rem 17.1rem;
+  background: var(--console-raised);
+}
+
+.detailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  padding: 0.85rem 0;
+  color: var(--console-muted);
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.65rem;
+}
+
+.detail pre {
+  max-height: 300px;
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--console-line);
+  border-radius: 0.75rem;
+  color: #cad8c3;
+  background: #0d100d;
+  font-size: 0.7rem;
+  line-height: 1.65;
+}
+
+.traceActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.traceActions button {
+  border-color: var(--console-line);
+  color: var(--console-text);
+  background: transparent;
+}
+
+.state {
+  display: flex;
+  min-height: 420px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--console-muted);
+  font-size: 0.82rem;
+}
+
+.error {
+  color: #ff938c;
+}
+
+@keyframes signal {
+  50% {
+    box-shadow: 0 0 0 9px rgb(66 211 146 / 2%);
+  }
+}
+
+@media (max-width: 1100px) {
+  .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .searchField,
+  .traceField {
+    grid-column: span 1;
+  }
+  .actions {
+    grid-column: 1 / -1;
+  }
+  .consoleHeader,
+  .recordSummary {
+    grid-template-columns: 126px 64px 92px minmax(220px, 1fr) 18px;
+  }
+  .consoleHeader span:nth-child(5),
+  .recordSummary code {
+    display: none;
+  }
+  .detail {
+    padding-left: 1rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 0.75rem;
+  }
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .connection {
+    width: 100%;
+  }
+  .controls {
+    grid-template-columns: 1fr;
+  }
+  .searchField,
+  .traceField,
+  .actions {
+    grid-column: auto;
+  }
+  .actions button {
+    flex: 1;
+  }
+  .consoleHeader {
+    display: none;
+  }
+  .recordSummary {
+    grid-template-columns: 112px 58px 1fr 18px;
+    gap: 0.5rem;
+  }
+  .recordSummary .service,
+  .recordSummary code {
+    display: none;
+  }
+  .rows {
+    max-height: 65vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection[data-live='true'] .signal {
+    animation: none;
+  }
+}

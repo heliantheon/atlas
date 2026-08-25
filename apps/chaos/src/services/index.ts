@@ -1,4 +1,4 @@
-import { chaosRequest as request } from '@atlas/shared'
+import { apiEndpoints, chaosRequest as request, getAuth } from '@atlas/shared'
 
 export interface EmailTemplate {
   template_id: string
@@ -70,4 +70,82 @@ export const chaosTemplateApi = {
 
 export const chaosMailApi = {
   send: (data: SendMailRequest) => request.post('/mail', data),
+}
+
+export interface LogEntry {
+  timestamp: string
+  timestamp_ns: string
+  service: string
+  severity: string
+  body: string
+  trace_id?: string
+  span_id?: string
+  labels: Record<string, string>
+  attributes?: Record<string, unknown>
+}
+
+export interface LogQueryResult {
+  entries: LogEntry[]
+  start: string
+  end: string
+  limit: number
+}
+
+export interface LogQueryParams {
+  service?: string
+  severity?: string
+  environment?: string
+  trace_id?: string
+  search?: string
+  start?: string
+  end?: string
+  limit?: number
+  direction?: 'forward' | 'backward'
+}
+
+function appendLogParams(url: URL, params: LogQueryParams) {
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
+  })
+}
+
+async function streamLogs(
+  params: LogQueryParams,
+  signal: AbortSignal,
+  onEntry: (entry: LogEntry) => void
+) {
+  const url = new URL(`${apiEndpoints.chaos}/logs/stream`)
+  appendLogParams(url, params)
+  const token = await getAuth().getAccessToken('chaos')
+  const response = await fetch(url, {
+    signal,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (!response.ok || !response.body) {
+    throw new Error(`日志流连接失败 (${response.status})`)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  while (!signal.aborted) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n')
+    let boundary = buffer.indexOf('\n\n')
+    while (boundary >= 0) {
+      const frame = buffer.slice(0, boundary)
+      buffer = buffer.slice(boundary + 2)
+      const event = frame.match(/^event:\s*(.+)$/m)?.[1]
+      const data = frame.match(/^data:\s*(.+)$/m)?.[1]
+      if (event === 'log' && data) onEntry(JSON.parse(data) as LogEntry)
+      if (event === 'error') throw new Error('日志流已中断')
+      boundary = buffer.indexOf('\n\n')
+    }
+  }
+}
+
+export const chaosLogApi = {
+  query: (params: LogQueryParams) => request.get<LogQueryResult>('/logs', { params }),
+  stream: streamLogs,
 }
