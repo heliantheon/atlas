@@ -51,8 +51,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1
       '@heliannuuthus/ui':
-        specifier: github:heliannuuthus/ui#774b2d3f16567506163bf54a3cfe88d835603af7
-        version: https://codeload.github.com/heliannuuthus/ui/tar.gz/774b2d3f16567506163bf54a3cfe88d835603af7(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(redux@5.0.1)(zod@4.4.3)
+        specifier: https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz
+        version: https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(redux@5.0.1)(zod@4.4.3)
       ahooks:
         specifier: ^3.7.8
         version: 3.9.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -981,8 +981,8 @@ packages:
   '@heliannuuthus/aegis-ts@1.3.1':
     resolution: {integrity: sha512-2D2JCzNjnNq748G6F5Wa+IwS9CgzLbCPDYGpvqDfazb9HmnwtLsmyVeCC4s2A1qcAq7moi92oEy9jJiC2432YQ==}
 
-  '@heliannuuthus/ui@https://codeload.github.com/heliannuuthus/ui/tar.gz/774b2d3f16567506163bf54a3cfe88d835603af7':
-    resolution: {tarball: https://codeload.github.com/heliannuuthus/ui/tar.gz/774b2d3f16567506163bf54a3cfe88d835603af7}
+  '@heliannuuthus/ui@https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz':
+    resolution: {integrity: sha512-MFXB2pLq55T82lWHJ7zW3FOtXGozM8ThkisZlUWuaHJ4UtysaUAUbvWb85lMjuUJV8km2gcIihsqGVi/eXPfFQ==, tarball: https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       react: '>=18.3.0'
@@ -5311,7 +5311,7 @@ snapshots:
     dependencies:
       paseto-ts: 2.0.5
 
-  '@heliannuuthus/ui@https://codeload.github.com/heliannuuthus/ui/tar.gz/774b2d3f16567506163bf54a3cfe88d835603af7(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(redux@5.0.1)(zod@4.4.3)':
+  '@heliannuuthus/ui@https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(redux@5.0.1)(zod@4.4.3)':
     dependencies:
       '@base-ui/react': 1.7.0(@date-fns/tz@1.5.0)(@types/react@19.2.9)(date-fns@4.4.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@hookform/resolvers': 5.4.0(react-hook-form@7.82.0(react@19.2.3))(zod@4.4.3)
