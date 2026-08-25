@@ -1,18 +1,18 @@
 [
   {
-    "image": "ghcr.io/heliantheon/atlas",
+    "image": "ghcr.io/heliantheons/atlas",
     "context": ".",
     "dockerfile": "Dockerfile",
     "buildArgs": "APP=portal"
   },
   {
-    "image": "ghcr.io/heliantheon/hermes-ui",
+    "image": "ghcr.io/heliantheons/hermes-ui",
     "context": ".",
     "dockerfile": "Dockerfile",
     "buildArgs": "APP=hermes"
   },
   {
-    "image": "ghcr.io/heliantheon/chaos-ui",
+    "image": "ghcr.io/heliantheons/chaos-ui",
     "context": ".",
     "dockerfile": "Dockerfile",
     "buildArgs": "APP=chaos"
