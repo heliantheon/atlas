@@ -11,5 +11,5 @@ component below `base/`; shared Nginx image configuration remains in
 - `config/` documents build-time Vite configuration.
 - `ingress/` owns the Atlas, Hermes, and Chaos administration UI routes.
 
-The private `heliantheon/applications` repository pins this contract and owns
+The private `heliantheons/applications` repository pins this contract and owns
 the promoted image versions in the sibling `overlay/` directory.

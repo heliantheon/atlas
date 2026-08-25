@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: atlas
-          image: ghcr.io/heliantheon/atlas:unreleased
+          image: ghcr.io/heliantheons/atlas:unreleased
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
