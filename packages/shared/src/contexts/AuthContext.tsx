@@ -1,6 +1,6 @@
 import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import type { CallbackResult, IDTokenClaims } from '@heliannuuthus/aegis-ts'
+import type { CallbackResult, IDTokenClaims } from '@heliantheons/aegis-ts'
 import { getAuth, getAuthorizeOptions, getConfiguredAudienceKeys } from '../config/auth'
 
 export interface AtlasAuthContextValue {
