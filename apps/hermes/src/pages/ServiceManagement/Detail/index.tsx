@@ -1,15 +1,8 @@
+import type { ReactNode } from 'react'
 import { useRequest } from 'ahooks'
 import { Boxes, GitBranch, Info, Plus, Share2, ShieldCheck } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Card, CardContent } from '@atlas/ui/card'
-import { DescriptionList } from '@atlas/ui/description-list'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Spinner } from '@atlas/ui/spinner'
-import { DataTable, type DataTableColumn } from '@atlas/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@atlas/ui/tabs'
-import { toast } from '@atlas/ui/toast'
+import { Button, Card, Empty, Spinner, Table, Tabs, Tag, toast } from '@heliannuuthus/ui'
 import {
   PageHeader,
   formatDateTime,
@@ -43,12 +36,12 @@ export function Detail() {
   )
   const applicationRows = appRelations ?? []
   const relationRows = relationships?.items ?? []
-  const appColumns: DataTableColumn<ServiceApplicationRelation>[] = [
+  const appColumns: Table.Column<ServiceApplicationRelation>[] = [
     {
       key: 'app_id',
       header: '应用',
       width: 190,
-      render: relation => (
+      render: (_value, relation) => (
         <button
           className="text-primary hover:underline"
           onClick={() => navigate(`/applications/${relation.app_id}`)}
@@ -60,25 +53,25 @@ export function Detail() {
     {
       key: 'relations',
       header: '授予的权限',
-      render: relation => (
+      render: (_value, relation) => (
         <div className="flex flex-wrap gap-1">
           {relation.relations.map(value => (
-            <Badge key={value}>{value}</Badge>
+            <Tag key={value} type="primary">
+              {value}
+            </Tag>
           ))}
         </div>
       ),
     },
   ]
-  const relationColumns: DataTableColumn<Relationship>[] = [
+  const relationColumns: Table.Column<Relationship>[] = [
     {
       key: 'subject',
       header: '主体',
       width: 210,
-      render: relation => (
+      render: (_value, relation) => (
         <div className={styles.entityCell}>
-          <Badge variant="secondary">
-            {subjectLabels[relation.subject_type] || relation.subject_type}
-          </Badge>
+          <Tag type="info">{subjectLabels[relation.subject_type] || relation.subject_type}</Tag>
           <span className="max-w-32 truncate" title={relation.subject_id}>
             {relation.subject_id}
           </span>
@@ -89,15 +82,15 @@ export function Detail() {
       key: 'relation',
       header: '关系',
       width: 120,
-      render: relation => <Badge>{relation.relation}</Badge>,
+      render: (_value, relation) => <Tag type="primary">{relation.relation}</Tag>,
     },
     {
       key: 'object',
       header: '对象',
       width: 210,
-      render: relation => (
+      render: (_value, relation) => (
         <div className={styles.entityCell}>
-          <Badge variant="outline">{relation.object_type}</Badge>
+          <Tag>{relation.object_type}</Tag>
           <span className="max-w-32 truncate" title={relation.object_id}>
             {relation.object_id}
           </span>
@@ -108,7 +101,7 @@ export function Detail() {
       key: 'expires',
       header: '过期时间',
       width: 150,
-      render: relation =>
+      render: (_value, relation) =>
         relation.expires_at ? (
           <span className={isExpiringSoon(relation.expires_at) ? 'text-amber-700' : undefined}>
             {formatRelativeTime(relation.expires_at)}
@@ -125,6 +118,19 @@ export function Detail() {
       </div>
     )
   if (!data) return null
+  const detailItems: Array<{ label: string; value: ReactNode; wide?: boolean }> = [
+    { label: '服务 ID', value: <code>{data.service_id}</code> },
+    { label: '名称', value: data.name },
+    { label: '域 ID', value: <code>{data.domain_id}</code> },
+    {
+      label: '描述',
+      value: data.description || <span className="text-muted-foreground">—</span>,
+      wide: true,
+    },
+    { label: 'Access Token 有效期', value: formatDuration(data.access_token_expires_in) },
+    { label: '创建时间', value: formatDateTime(data.created_at) },
+    { label: '更新时间', value: formatDateTime(data.updated_at) },
+  ]
   return (
     <div className={styles.container}>
       <PageHeader
@@ -134,115 +140,131 @@ export function Detail() {
       />
       <div className={styles.content}>
         <Card className={styles.mainCard}>
-          <CardContent>
-            <Tabs defaultValue="info" className={styles.tabs}>
-              <TabsList>
-                <TabsTrigger value="info">
-                  <Info />
-                  基本信息
-                </TabsTrigger>
-                <TabsTrigger value="granted-apps">
-                  <Boxes />
-                  已授权应用
-                  {applicationRows.length ? (
-                    <Badge variant="secondary">{applicationRows.length}</Badge>
-                  ) : null}
-                </TabsTrigger>
-                <TabsTrigger value="relationships">
-                  <Share2 />
-                  关联关系
-                  {relationRows.length ? (
-                    <Badge variant="secondary">{relationRows.length}</Badge>
-                  ) : null}
-                </TabsTrigger>
-                <TabsTrigger value="challenges">
-                  <ShieldCheck />
-                  Challenge 策略
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="info">
-                <DescriptionList
-                  className={styles.descriptions}
-                  items={[
-                    { label: '服务 ID', value: <code>{data.service_id}</code> },
-                    { label: '名称', value: data.name },
-                    { label: '域 ID', value: <code>{data.domain_id}</code> },
-                    {
-                      label: '描述',
-                      value: data.description || <span className="text-muted-foreground">—</span>,
-                      wide: true,
-                    },
-                    {
-                      label: 'Access Token 有效期',
-                      value: formatDuration(data.access_token_expires_in),
-                    },
-                    { label: '创建时间', value: formatDateTime(data.created_at) },
-                    { label: '更新时间', value: formatDateTime(data.updated_at) },
-                  ]}
-                />
-              </TabsContent>
-              <TabsContent value="granted-apps">
-                <div className={styles.relationshipsTab}>
-                  <div className={styles.tabHeader}>
-                    <span className="text-sm text-muted-foreground">
-                      本服务已授权给以下应用，具体权限在应用详情中配置。
-                    </span>
-                  </div>
-                  {appLoading ? (
-                    <div className={styles.loading}>
-                      <Spinner />
-                    </div>
-                  ) : applicationRows.length ? (
-                    <DataTable columns={appColumns} data={applicationRows} rowKey="app_id" />
-                  ) : (
-                    <EmptyState title="暂无已授权应用" />
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="relationships">
-                <div className={styles.relationshipsTab}>
-                  <div className={styles.tabHeader}>
-                    <span className="text-sm text-muted-foreground">
-                      该服务下的主体—关系—对象授权关系。
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => navigate(`/services/${serviceId}/relationships/create`)}
+          <Tabs
+            defaultValue="info"
+            className={styles.tabs}
+            items={[
+              {
+                value: 'info',
+                label: (
+                  <>
+                    <Info />
+                    基本信息
+                  </>
+                ),
+                content: (
+                  <dl className="grid overflow-hidden rounded-lg border bg-border md:grid-cols-2">
+                    {detailItems.map(item => (
+                      <div
+                        key={item.label}
+                        className={`grid grid-cols-[minmax(7rem,0.35fr)_1fr] gap-px bg-background ${item.wide ? 'md:col-span-full' : ''}`}
                       >
-                        <Plus />
-                        配置关系
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate(`/services/${serviceId}/relationships/graph`)}
-                      >
-                        <GitBranch />
-                        图谱查看
-                      </Button>
+                        <dt className="bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                          {item.label}
+                        </dt>
+                        <dd className="min-w-0 px-4 py-3 text-sm">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ),
+              },
+              {
+                value: 'granted-apps',
+                label: (
+                  <>
+                    <Boxes />
+                    已授权应用
+                    {applicationRows.length ? (
+                      <Tag type="info">{applicationRows.length}</Tag>
+                    ) : null}
+                  </>
+                ),
+                content: (
+                  <div className={styles.relationshipsTab}>
+                    <div className={styles.tabHeader}>
+                      <span className="text-sm text-muted-foreground">
+                        本服务已授权给以下应用，具体权限在应用详情中配置。
+                      </span>
                     </div>
+                    {appLoading ? (
+                      <div className={styles.loading}>
+                        <Spinner />
+                      </div>
+                    ) : applicationRows.length ? (
+                      <Table
+                        columns={appColumns}
+                        data={applicationRows}
+                        rowKey="app_id"
+                        pagination={false}
+                      />
+                    ) : (
+                      <Empty title="暂无已授权应用" />
+                    )}
                   </div>
-                  {relationsLoading ? (
-                    <div className={styles.loading}>
-                      <Spinner />
+                ),
+              },
+              {
+                value: 'relationships',
+                label: (
+                  <>
+                    <Share2 />
+                    关联关系
+                    {relationRows.length ? <Tag type="info">{relationRows.length}</Tag> : null}
+                  </>
+                ),
+                content: (
+                  <div className={styles.relationshipsTab}>
+                    <div className={styles.tabHeader}>
+                      <span className="text-sm text-muted-foreground">
+                        该服务下的主体—关系—对象授权关系。
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => navigate(`/services/${serviceId}/relationships/create`)}
+                        >
+                          <Plus />
+                          配置关系
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/services/${serviceId}/relationships/graph`)}
+                        >
+                          <GitBranch />
+                          图谱查看
+                        </Button>
+                      </div>
                     </div>
-                  ) : relationRows.length ? (
-                    <DataTable
-                      columns={relationColumns}
-                      data={relationRows}
-                      rowKey={relation =>
-                        `${relation.service_id}:${relation.subject_id}:${relation.relation}:${relation.object_id}`
-                      }
-                    />
-                  ) : (
-                    <EmptyState title="暂无关联关系" />
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="challenges">
-                <ChallengeSettingsPanel domainId={domainId!} serviceId={serviceId!} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
+                    {relationsLoading ? (
+                      <div className={styles.loading}>
+                        <Spinner />
+                      </div>
+                    ) : relationRows.length ? (
+                      <Table
+                        columns={relationColumns}
+                        data={relationRows}
+                        pagination={false}
+                        rowKey={relation =>
+                          `${relation.service_id}:${relation.subject_id}:${relation.relation}:${relation.object_id}`
+                        }
+                      />
+                    ) : (
+                      <Empty title="暂无关联关系" />
+                    )}
+                  </div>
+                ),
+              },
+              {
+                value: 'challenges',
+                label: (
+                  <>
+                    <ShieldCheck />
+                    Challenge 策略
+                  </>
+                ),
+                content: <ChallengeSettingsPanel domainId={domainId!} serviceId={serviceId!} />,
+              },
+            ]}
+          />
         </Card>
       </div>
     </div>

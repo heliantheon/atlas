@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Field, FieldDescription, FieldError, Label } from '@atlas/ui/field'
 
 export function FormField({
   label,
@@ -17,14 +16,20 @@ export function FormField({
   children: ReactNode
 }) {
   return (
-    <Field>
-      <Label htmlFor={htmlFor}>
+    <div className="grid gap-2">
+      <label className="text-sm font-medium leading-none" htmlFor={htmlFor}>
         {label}
         {required ? <span className="ml-1 text-destructive">*</span> : null}
-      </Label>
+      </label>
       {children}
-      {error ? <FieldError>{error}</FieldError> : null}
-      {!error && description ? <FieldDescription>{description}</FieldDescription> : null}
-    </Field>
+      {error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {!error && description ? (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      ) : null}
+    </div>
   )
 }

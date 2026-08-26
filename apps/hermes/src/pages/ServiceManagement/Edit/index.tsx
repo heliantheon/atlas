@@ -3,11 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Spinner } from '@atlas/ui/spinner'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Spinner, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -68,42 +64,32 @@ export function Edit() {
     <div className={styles.container}>
       <PageHeader title="编辑服务" onBack={() => navigate(`/services/${serviceId}`)} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField label="名称" htmlFor="service-name" required error={errors.name?.message}>
+            <Input id="service-name" {...register('name')} />
+          </FormField>
+          <FormField label="描述" htmlFor="service-description" error={errors.description?.message}>
+            <Input.TextArea id="service-description" rows={4} {...register('description')} />
+          </FormField>
+          <FormField
+            label="Access Token 过期时间（秒）"
+            htmlFor="access-token-expiry"
+            required
+            error={errors.access_token_expires_in?.message}
           >
-            <FormField label="名称" htmlFor="service-name" required error={errors.name?.message}>
-              <Input id="service-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="描述"
-              htmlFor="service-description"
-              error={errors.description?.message}
-            >
-              <Textarea id="service-description" rows={4} {...register('description')} />
-            </FormField>
-            <FormField
-              label="Access Token 过期时间（秒）"
-              htmlFor="access-token-expiry"
-              required
-              error={errors.access_token_expires_in?.message}
-            >
-              <Input
-                id="access-token-expiry"
-                type="number"
-                min={1}
-                {...register('access_token_expires_in', { valueAsNumber: true })}
-              />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="保存"
-              onCancel={() => navigate(`/services/${serviceId}`)}
+            <Input
+              id="access-token-expiry"
+              type="number"
+              min={1}
+              {...register('access_token_expires_in', { valueAsNumber: true })}
             />
-          </form>
-        </CardContent>
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="保存"
+            onCancel={() => navigate(`/services/${serviceId}`)}
+          />
+        </form>
       </Card>
     </div>
   )

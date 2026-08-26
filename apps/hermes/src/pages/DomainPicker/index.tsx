@@ -2,10 +2,7 @@ import { useState } from 'react'
 import { useRequest } from 'ahooks'
 import { ArrowRight, KeyRound, Network, Plus, RotateCcw } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Alert, AlertDescription, AlertTitle } from '@atlas/ui/alert'
-import { Button } from '@atlas/ui/button'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Spinner } from '@atlas/ui/spinner'
+import { Alert, Button, Empty, Spinner } from '@heliannuuthus/ui'
 import { DomainDialog, type DomainDialogState } from '@/components/DomainSwitcher/DomainDialog'
 import { domainApi } from '@/services'
 import type { Domain } from '@/types'
@@ -75,16 +72,17 @@ export function DomainPicker() {
         </div>
 
         {error ? (
-          <Alert variant="warning">
-            <AlertTitle>域目录暂时无法加载</AlertTitle>
-            <AlertDescription className={styles.alertDescription}>
-              请确认 Hermes 管理接口可用后重试。
+          <Alert
+            variant="warning"
+            title="域目录暂时无法加载"
+            description="请确认 Hermes 管理接口可用后重试。"
+            action={
               <Button variant="outline" size="sm" onClick={refresh}>
                 <RotateCcw />
                 重新加载
               </Button>
-            </AlertDescription>
-          </Alert>
+            }
+          />
         ) : null}
 
         <section className={styles.directory} aria-labelledby="domain-directory-title">
@@ -117,11 +115,11 @@ export function DomainPicker() {
               ))}
             </ol>
           ) : (
-            <EmptyState
+            <Empty
               title="尚未登记身份域"
               description="创建第一个域，开始配置应用与服务边界。"
               icon={<Network className="size-8" />}
-              action={
+              actions={
                 <Button onClick={() => setDialogState({ mode: 'create' })}>
                   <Plus />
                   创建域

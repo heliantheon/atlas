@@ -2,23 +2,18 @@ import { useCallback, useMemo, useState } from 'react'
 import { useRequest } from 'ahooks'
 import { GitBranch, LoaderCircle, Pencil, Plus, Share2, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@atlas/ui/card'
 import {
+  Button,
+  Card,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Input } from '@atlas/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { Spinner } from '@atlas/ui/spinner'
-import { DataTable, type DataTableColumn } from '@atlas/ui/table'
-import { toast } from '@atlas/ui/toast'
+  Empty,
+  Input,
+  Select,
+  Spinner,
+  Table,
+  Tag,
+  toast,
+} from '@heliannuuthus/ui'
 import { formatRelativeTime, isExpiringSoon } from '@atlas/shared'
 import { useAppNavigate } from '@/contexts/DomainContext'
 import { relationshipApi } from '@/services'
@@ -103,17 +98,17 @@ export function List() {
       setUpdating(false)
     }
   }, [editExpiresAt, editRelation, pendingEdit, refresh])
-  const columns = useMemo<DataTableColumn<Relationship>[]>(() => {
-    const result: DataTableColumn<Relationship>[] = [
+  const columns = useMemo<Table.Column<Relationship>[]>(() => {
+    const result: Table.Column<Relationship>[] = [
       {
         key: 'subject',
         header: '主体',
         width: 220,
-        render: relation => (
+        render: (_value, relation) => (
           <div className={styles.entityCell}>
-            <Badge variant="secondary">
+            <Tag type="info">
               {subjectTypeLabels[relation.subject_type] || relation.subject_type}
-            </Badge>
+            </Tag>
             <span className="max-w-32 truncate" title={relation.subject_id}>
               {relation.subject_id}
             </span>
@@ -124,15 +119,15 @@ export function List() {
         key: 'relation',
         header: '关系',
         width: 120,
-        render: relation => <Badge>{relation.relation}</Badge>,
+        render: (_value, relation) => <Tag type="primary">{relation.relation}</Tag>,
       },
       {
         key: 'object',
         header: '对象',
         width: 220,
-        render: relation => (
+        render: (_value, relation) => (
           <div className={styles.entityCell}>
-            <Badge variant="outline">{relation.object_type}</Badge>
+            <Tag>{relation.object_type}</Tag>
             <span className="max-w-32 truncate" title={relation.object_id}>
               {relation.object_id}
             </span>
@@ -143,7 +138,7 @@ export function List() {
         key: 'expires_at',
         header: '过期时间',
         width: 140,
-        render: relation =>
+        render: (_value, relation) =>
           relation.expires_at ? (
             <span className={isExpiringSoon(relation.expires_at) ? 'text-amber-700' : undefined}>
               {formatRelativeTime(relation.expires_at)}
@@ -156,7 +151,7 @@ export function List() {
         key: 'action',
         header: '操作',
         width: 170,
-        render: relation => (
+        render: (_value, relation) => (
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={() => openEdit(relation)}>
               <Pencil />
@@ -180,7 +175,7 @@ export function List() {
         key: 'service_id',
         header: '服务',
         width: 140,
-        render: relation => <Badge variant="outline">{relation.service_id}</Badge>,
+        render: (_value, relation) => <Tag>{relation.service_id}</Tag>,
       })
     return result
   }, [openEdit, urlServiceId])
@@ -205,122 +200,115 @@ export function List() {
 
   return (
     <div className={styles.container}>
-      <Card>
-        <CardHeader className="flex-row items-start justify-between">
-          <div className="grid gap-1.5">
-            <CardTitle>
+      <Card
+        header={{
+          title: (
+            <>
               关系管理{' '}
               {urlServiceId ? (
                 <span className="text-sm font-normal text-muted-foreground">({urlServiceId})</span>
               ) : null}
-            </CardTitle>
-            <p className={styles.headerDesc}>主体—关系—对象构成服务内的授权关系。</p>
-          </div>
-          {actions}
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <Select value={subjectType} onValueChange={setSubjectType}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部主体</SelectItem>
-              <SelectItem value="user">用户</SelectItem>
-              <SelectItem value="group">组</SelectItem>
-              <SelectItem value="application">应用</SelectItem>
-            </SelectContent>
-          </Select>
+            </>
+          ),
+          description: '主体—关系—对象构成服务内的授权关系。',
+          action: actions,
+        }}
+      >
+        <div className="grid gap-4">
+          <Select<string>
+            value={subjectType}
+            onChange={value => setSubjectType(value ?? 'all')}
+            classNames={{ trigger: 'w-40' }}
+            options={[
+              { label: '全部主体', value: 'all' },
+              { label: '用户', value: 'user' },
+              { label: '组', value: 'group' },
+              { label: '应用', value: 'application' },
+            ]}
+          />
           {loading ? (
             <div className="flex min-h-40 items-center justify-center">
               <Spinner />
             </div>
           ) : relationships.length ? (
-            <DataTable
+            <Table
               columns={columns}
               data={relationships}
+              pagination={false}
               rowKey={relation =>
                 `${relation.service_id}:${relation.subject_type}:${relation.subject_id}:${relation.relation}:${relation.object_type}:${relation.object_id}`
               }
             />
           ) : (
-            <EmptyState
-              title="暂无关系数据"
-              icon={<Share2 className="size-8" />}
-              action={actions}
-            />
+            <Empty title="暂无关系数据" icon={<Share2 className="size-8" />} actions={actions} />
           )}
-        </CardContent>
-        <Dialog
-          open={pendingDelete !== null}
-          onOpenChange={open => !open && setPendingDelete(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>删除关系</DialogTitle>
-              <DialogDescription>确定删除这条授权关系？此操作无法撤销。</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPendingDelete(null)}>
-                取消
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={deleting}
-                onClick={() => void deleteRelationship()}
-              >
-                {deleting ? <LoaderCircle className="animate-spin" /> : null}删除
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog
-          open={pendingEdit !== null}
-          onOpenChange={open => {
-            if (!open && !updating) setPendingEdit(null)
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>编辑授权关系</DialogTitle>
-              <DialogDescription>主体和对象保持不变；可调整关系类型与过期时间。</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-name">
-                关系类型
-                <Input
-                  id="relationship-name"
-                  value={editRelation}
-                  onChange={event => setEditRelation(event.target.value)}
-                  placeholder="例如 viewer"
-                />
-              </label>
-              <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-expires-at">
-                过期时间
-                <Input
-                  id="relationship-expires-at"
-                  type="datetime-local"
-                  value={editExpiresAt}
-                  onChange={event => setEditExpiresAt(event.target.value)}
-                />
-                <span className="text-xs font-normal text-muted-foreground">
-                  留空表示永久有效，并会清除已有过期时间。
-                </span>
-              </label>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" disabled={updating} onClick={() => setPendingEdit(null)}>
-                取消
-              </Button>
-              <Button
-                disabled={updating || !editRelation.trim()}
-                onClick={() => void updateRelationship()}
-              >
-                {updating ? <LoaderCircle className="animate-spin" /> : null}保存
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </div>
       </Card>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除关系"
+        description="确定删除这条授权关系？此操作无法撤销。"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => void deleteRelationship()}
+            >
+              {deleting ? <LoaderCircle className="animate-spin" /> : null}删除
+            </Button>
+          </>
+        }
+      />
+      <Dialog
+        open={pendingEdit !== null}
+        onOpenChange={open => {
+          if (!open && !updating) setPendingEdit(null)
+        }}
+        title="编辑授权关系"
+        description="主体和对象保持不变；可调整关系类型与过期时间。"
+        footer={
+          <>
+            <Button variant="outline" disabled={updating} onClick={() => setPendingEdit(null)}>
+              取消
+            </Button>
+            <Button
+              disabled={updating || !editRelation.trim()}
+              onClick={() => void updateRelationship()}
+            >
+              {updating ? <LoaderCircle className="animate-spin" /> : null}保存
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-4 py-2">
+          <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-name">
+            关系类型
+            <Input
+              id="relationship-name"
+              value={editRelation}
+              onChange={event => setEditRelation(event.target.value)}
+              placeholder="例如 viewer"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-expires-at">
+            过期时间
+            <Input
+              id="relationship-expires-at"
+              type="datetime-local"
+              value={editExpiresAt}
+              onChange={event => setEditExpiresAt(event.target.value)}
+            />
+            <span className="text-xs font-normal text-muted-foreground">
+              留空表示永久有效，并会清除已有过期时间。
+            </span>
+          </label>
+        </div>
+      </Dialog>
     </div>
   )
 }

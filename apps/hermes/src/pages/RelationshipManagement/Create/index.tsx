@@ -3,10 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Select, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -71,113 +68,98 @@ export function Create() {
     <div className={styles.container}>
       <PageHeader title="新建关系" onBack={() => navigate(backPath)} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          {!urlServiceId ? (
+            <FormField
+              label="服务"
+              htmlFor="relationship-service"
+              required
+              error={errors.service_id?.message}
+            >
+              <Controller
+                control={control}
+                name="service_id"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || null}
+                    onChange={field.onChange}
+                    placeholder="请选择服务"
+                    triggerProps={{ id: 'relationship-service' }}
+                    options={(services?.items ?? []).map(service => ({
+                      label: service.name,
+                      value: service.service_id,
+                    }))}
+                  />
+                )}
+              />
+            </FormField>
+          ) : null}
+          <FormField
+            label="主体类型"
+            htmlFor="subject-type"
+            required
+            error={errors.subject_type?.message}
           >
-            {!urlServiceId ? (
-              <FormField
-                label="服务"
-                htmlFor="relationship-service"
-                required
-                error={errors.service_id?.message}
-              >
-                <Controller
-                  control={control}
-                  name="service_id"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="relationship-service">
-                        <SelectValue placeholder="请选择服务" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(services?.items ?? []).map(service => (
-                          <SelectItem key={service.service_id} value={service.service_id}>
-                            {service.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+            <Controller
+              control={control}
+              name="subject_type"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="请选择主体类型"
+                  triggerProps={{ id: 'subject-type' }}
+                  options={[
+                    { label: '用户', value: 'user' },
+                    { label: '组', value: 'group' },
+                    { label: '应用', value: 'application' },
+                  ]}
                 />
-              </FormField>
-            ) : null}
-            <FormField
-              label="主体类型"
-              htmlFor="subject-type"
-              required
-              error={errors.subject_type?.message}
-            >
-              <Controller
-                control={control}
-                name="subject_type"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="subject-type">
-                      <SelectValue placeholder="请选择主体类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">用户</SelectItem>
-                      <SelectItem value="group">组</SelectItem>
-                      <SelectItem value="application">应用</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
-            <FormField
-              label="主体 ID"
-              htmlFor="subject-id"
-              required
-              error={errors.subject_id?.message}
-            >
-              <Input id="subject-id" {...register('subject_id')} />
-            </FormField>
-            <FormField label="关系" htmlFor="relation" required error={errors.relation?.message}>
-              <Input id="relation" placeholder="owner、editor、viewer" {...register('relation')} />
-            </FormField>
-            <FormField
-              label="对象类型"
-              htmlFor="object-type"
-              required
-              error={errors.object_type?.message}
-            >
-              <Controller
-                control={control}
-                name="object_type"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="object-type">
-                      <SelectValue placeholder="请选择对象类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="resource">资源</SelectItem>
-                      <SelectItem value="group">组</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
-            <FormField
-              label="对象 ID"
-              htmlFor="object-id"
-              required
-              error={errors.object_id?.message}
-            >
-              <Input id="object-id" {...register('object_id')} />
-            </FormField>
-            <FormField label="过期时间" htmlFor="expires-at" error={errors.expires_at?.message}>
-              <Input id="expires-at" type="datetime-local" {...register('expires_at')} />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="创建"
-              onCancel={() => navigate(backPath)}
+              )}
             />
-          </form>
-        </CardContent>
+          </FormField>
+          <FormField
+            label="主体 ID"
+            htmlFor="subject-id"
+            required
+            error={errors.subject_id?.message}
+          >
+            <Input id="subject-id" {...register('subject_id')} />
+          </FormField>
+          <FormField label="关系" htmlFor="relation" required error={errors.relation?.message}>
+            <Input id="relation" placeholder="owner、editor、viewer" {...register('relation')} />
+          </FormField>
+          <FormField
+            label="对象类型"
+            htmlFor="object-type"
+            required
+            error={errors.object_type?.message}
+          >
+            <Controller
+              control={control}
+              name="object_type"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="请选择对象类型"
+                  triggerProps={{ id: 'object-type' }}
+                  options={[
+                    { label: '资源', value: 'resource' },
+                    { label: '组', value: 'group' },
+                  ]}
+                />
+              )}
+            />
+          </FormField>
+          <FormField label="对象 ID" htmlFor="object-id" required error={errors.object_id?.message}>
+            <Input id="object-id" {...register('object_id')} />
+          </FormField>
+          <FormField label="过期时间" htmlFor="expires-at" error={errors.expires_at?.message}>
+            <Input id="expires-at" type="datetime-local" {...register('expires_at')} />
+          </FormField>
+          <FormActions submitting={loading} submitText="创建" onCancel={() => navigate(backPath)} />
+        </form>
       </Card>
     </div>
   )

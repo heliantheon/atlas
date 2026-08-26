@@ -2,11 +2,7 @@ import { useRequest } from 'ahooks'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Switch } from '@atlas/ui/switch'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Switch, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -82,83 +78,77 @@ export function Create() {
     <div className={styles.container}>
       <PageHeader title="新建应用" onBack={() => navigate('/applications')} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField
+            label="应用标识"
+            htmlFor="app-id"
+            error={errors.app_id?.message}
+            description="可选；留空时由服务端生成"
           >
-            <FormField
-              label="应用标识"
-              htmlFor="app-id"
-              error={errors.app_id?.message}
-              description="可选；留空时由服务端生成"
-            >
-              <Input id="app-id" {...register('app_id')} />
-            </FormField>
-            <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
-              <Input id="app-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="描述"
-              htmlFor="app-description"
-              required
-              error={errors.description?.message}
-            >
-              <Textarea id="app-description" rows={3} {...register('description')} />
-            </FormField>
-            <FormField
-              label="重定向 URI（每行一个）"
-              htmlFor="redirect-uris"
-              error={errors.allowed_redirect_uris?.message}
-            >
-              <Textarea
-                id="redirect-uris"
-                rows={3}
-                placeholder="https://example.com/callback"
-                {...register('allowed_redirect_uris')}
-              />
-            </FormField>
-            <FormField
-              label="允许的来源 CORS（每行一个）"
-              htmlFor="allowed-origins"
-              error={errors.allowed_origins?.message}
-            >
-              <Textarea
-                id="allowed-origins"
-                rows={2}
-                placeholder="https://example.com"
-                {...register('allowed_origins')}
-              />
-            </FormField>
-            <FormField
-              label="登出后跳转 URI（每行一个）"
-              htmlFor="logout-uris"
-              error={errors.allowed_logout_uris?.message}
-            >
-              <Textarea
-                id="logout-uris"
-                rows={2}
-                placeholder="https://example.com"
-                {...register('allowed_logout_uris')}
-              />
-            </FormField>
-            <FormField label="需要密钥" htmlFor="need-key">
-              <Controller
-                control={control}
-                name="need_key"
-                render={({ field }) => (
-                  <Switch id="need-key" checked={field.value} onCheckedChange={field.onChange} />
-                )}
-              />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="创建"
-              onCancel={() => navigate('/applications')}
+            <Input id="app-id" {...register('app_id')} />
+          </FormField>
+          <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
+            <Input id="app-name" {...register('name')} />
+          </FormField>
+          <FormField
+            label="描述"
+            htmlFor="app-description"
+            required
+            error={errors.description?.message}
+          >
+            <Input.TextArea id="app-description" rows={3} {...register('description')} />
+          </FormField>
+          <FormField
+            label="重定向 URI（每行一个）"
+            htmlFor="redirect-uris"
+            error={errors.allowed_redirect_uris?.message}
+          >
+            <Input.TextArea
+              id="redirect-uris"
+              rows={3}
+              placeholder="https://example.com/callback"
+              {...register('allowed_redirect_uris')}
             />
-          </form>
-        </CardContent>
+          </FormField>
+          <FormField
+            label="允许的来源 CORS（每行一个）"
+            htmlFor="allowed-origins"
+            error={errors.allowed_origins?.message}
+          >
+            <Input.TextArea
+              id="allowed-origins"
+              rows={2}
+              placeholder="https://example.com"
+              {...register('allowed_origins')}
+            />
+          </FormField>
+          <FormField
+            label="登出后跳转 URI（每行一个）"
+            htmlFor="logout-uris"
+            error={errors.allowed_logout_uris?.message}
+          >
+            <Input.TextArea
+              id="logout-uris"
+              rows={2}
+              placeholder="https://example.com"
+              {...register('allowed_logout_uris')}
+            />
+          </FormField>
+          <FormField label="需要密钥" htmlFor="need-key">
+            <Controller
+              control={control}
+              name="need_key"
+              render={({ field }) => (
+                <Switch id="need-key" checked={field.value} onChange={field.onChange} />
+              )}
+            />
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="创建"
+            onCancel={() => navigate('/applications')}
+          />
+        </form>
       </Card>
     </div>
   )

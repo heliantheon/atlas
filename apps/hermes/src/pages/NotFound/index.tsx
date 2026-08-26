@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@atlas/ui/button'
+import { Button } from '@heliannuuthus/ui'
 import { StatusPage } from '@/components/StatusPage'
 import { useDomainId } from '@/contexts/DomainContext'
 

@@ -3,11 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Spinner } from '@atlas/ui/spinner'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Spinner, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -91,43 +87,37 @@ export function Edit() {
     <div className={styles.container}>
       <PageHeader title="编辑应用" onBack={() => navigate(`/applications/${appId}`)} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
+            <Input id="app-name" {...register('name')} />
+          </FormField>
+          <FormField
+            label="重定向 URI（每行一个）"
+            htmlFor="redirect-uris"
+            error={errors.allowed_redirect_uris?.message}
           >
-            <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
-              <Input id="app-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="重定向 URI（每行一个）"
-              htmlFor="redirect-uris"
-              error={errors.allowed_redirect_uris?.message}
-            >
-              <Textarea id="redirect-uris" rows={3} {...register('allowed_redirect_uris')} />
-            </FormField>
-            <FormField
-              label="允许的来源 CORS（每行一个）"
-              htmlFor="allowed-origins"
-              error={errors.allowed_origins?.message}
-            >
-              <Textarea id="allowed-origins" rows={2} {...register('allowed_origins')} />
-            </FormField>
-            <FormField
-              label="登出后跳转 URI（每行一个）"
-              htmlFor="logout-uris"
-              error={errors.allowed_logout_uris?.message}
-            >
-              <Textarea id="logout-uris" rows={2} {...register('allowed_logout_uris')} />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="保存"
-              onCancel={() => navigate(`/applications/${appId}`)}
-            />
-          </form>
-        </CardContent>
+            <Input.TextArea id="redirect-uris" rows={3} {...register('allowed_redirect_uris')} />
+          </FormField>
+          <FormField
+            label="允许的来源 CORS（每行一个）"
+            htmlFor="allowed-origins"
+            error={errors.allowed_origins?.message}
+          >
+            <Input.TextArea id="allowed-origins" rows={2} {...register('allowed_origins')} />
+          </FormField>
+          <FormField
+            label="登出后跳转 URI（每行一个）"
+            htmlFor="logout-uris"
+            error={errors.allowed_logout_uris?.message}
+          >
+            <Input.TextArea id="logout-uris" rows={2} {...register('allowed_logout_uris')} />
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="保存"
+            onCancel={() => navigate(`/applications/${appId}`)}
+          />
+        </form>
       </Card>
     </div>
   )

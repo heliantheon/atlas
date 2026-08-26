@@ -2,11 +2,7 @@ import { useRequest } from 'ahooks'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Textarea } from '@atlas/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Select, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -51,57 +47,46 @@ export function Create() {
     <div className={styles.container}>
       <PageHeader title="新建组" onBack={() => navigate('/groups')} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
-          >
-            <FormField label="组 ID" htmlFor="group-id" required error={errors.group_id?.message}>
-              <Input id="group-id" {...register('group_id')} />
-            </FormField>
-            <Controller
-              name="service_id"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="所属服务"
-                  htmlFor="group-service"
-                  required
-                  error={fieldState.error?.message}
-                >
-                  <Select
-                    value={field.value || undefined}
-                    onValueChange={field.onChange}
-                    disabled={servicesLoading}
-                  >
-                    <SelectTrigger id="group-service" className="w-full">
-                      <SelectValue placeholder="选择当前域中的服务" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(services?.items ?? []).map(service => (
-                        <SelectItem key={service.service_id} value={service.service_id}>
-                          {service.name || service.service_id}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              )}
-            />
-            <FormField label="名称" htmlFor="group-name" required error={errors.name?.message}>
-              <Input id="group-name" {...register('name')} />
-            </FormField>
-            <FormField label="描述" htmlFor="group-description" error={errors.description?.message}>
-              <Textarea id="group-description" rows={4} {...register('description')} />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="创建"
-              onCancel={() => navigate('/groups')}
-            />
-          </form>
-        </CardContent>
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField label="组 ID" htmlFor="group-id" required error={errors.group_id?.message}>
+            <Input id="group-id" {...register('group_id')} />
+          </FormField>
+          <Controller
+            name="service_id"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="所属服务"
+                htmlFor="group-service"
+                required
+                error={fieldState.error?.message}
+              >
+                <Select
+                  value={field.value || null}
+                  onChange={field.onChange}
+                  disabled={servicesLoading}
+                  placeholder="选择当前域中的服务"
+                  triggerProps={{ id: 'group-service' }}
+                  options={(services?.items ?? []).map(service => ({
+                    label: service.name || service.service_id,
+                    value: service.service_id,
+                  }))}
+                />
+              </FormField>
+            )}
+          />
+          <FormField label="名称" htmlFor="group-name" required error={errors.name?.message}>
+            <Input id="group-name" {...register('name')} />
+          </FormField>
+          <FormField label="描述" htmlFor="group-description" error={errors.description?.message}>
+            <Input.TextArea id="group-description" rows={4} {...register('description')} />
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="创建"
+            onCancel={() => navigate('/groups')}
+          />
+        </form>
       </Card>
     </div>
   )

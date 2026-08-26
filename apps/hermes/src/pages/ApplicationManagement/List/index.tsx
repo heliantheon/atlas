@@ -5,22 +5,7 @@ import { useForm } from 'react-hook-form'
 import { useLocation } from 'react-router-dom'
 import { AppWindow, LoaderCircle, Plus, Search } from 'lucide-react'
 import { z } from 'zod'
-import { Button } from '@atlas/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Input } from '@atlas/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@atlas/ui/input-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { Skeleton } from '@atlas/ui/skeleton'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Button, Dialog, Empty, Input, Select, Skeleton, toast } from '@heliannuuthus/ui'
 import { FormField } from '@/components/forms/FormField'
 import { ResourceList } from '@/components/ResourceList'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
@@ -107,30 +92,28 @@ export function List() {
           <span>{debouncedKeyword ? `匹配“${debouncedKeyword}”` : '按创建时间 · 最新优先'}</span>
         </div>
         <div className={styles.headerActions}>
-          <InputGroup className={styles.searchGroup} role="search">
+          <div className={styles.searchGroup} role="search">
             <label className={styles.srOnly} htmlFor="application-search">
               搜索应用
             </label>
-            <Select value={searchBy} onValueChange={value => setSearchBy(value as 'id' | 'name')}>
-              <SelectTrigger className={styles.searchType}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">按名称</SelectItem>
-                <SelectItem value="id">按标识</SelectItem>
-              </SelectContent>
-            </Select>
-            <InputGroupAddon>
-              <Search aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
+            <Select<'id' | 'name'>
+              value={searchBy}
+              onChange={value => value && setSearchBy(value)}
+              classNames={{ trigger: styles.searchType }}
+              options={[
+                { label: '按名称', value: 'name' },
+                { label: '按标识', value: 'id' },
+              ]}
+            />
+            <Input
               id="application-search"
               autoComplete="off"
+              prefix={<Search aria-hidden="true" />}
               placeholder={searchBy === 'id' ? '输入应用标识…' : '输入应用名称…'}
               value={keyword}
               onChange={event => setKeyword(event.target.value)}
             />
-          </InputGroup>
+          </div>
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus aria-hidden="true" />
             新建应用
@@ -159,14 +142,14 @@ export function List() {
           onDelete={item => setPendingDelete({ id: item.id, name: item.name })}
         />
       ) : (
-        <EmptyState
+        <Empty
           title={debouncedKeyword ? '没有匹配的应用' : '尚未创建应用'}
           description={
             debouncedKeyword
               ? '尝试更换关键词或搜索字段。'
               : '创建第一个应用以开始配置认证和服务授权。'
           }
-          action={
+          actions={
             <Button type="button" onClick={() => setCreateOpen(true)}>
               <Plus aria-hidden="true" />
               新建应用
@@ -176,58 +159,57 @@ export function List() {
         />
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新建应用</DialogTitle>
-            <DialogDescription>应用标识可留空，由服务端自动生成。</DialogDescription>
-          </DialogHeader>
-          <form
-            className={styles.dialogForm}
-            onSubmit={handleSubmit(values => create(values))}
-            noValidate
+      <Dialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="新建应用"
+        description="应用标识可留空，由服务端自动生成。"
+      >
+        <form
+          className={styles.dialogForm}
+          onSubmit={handleSubmit(values => create(values))}
+          noValidate
+        >
+          <FormField label="应用标识" htmlFor="create-app-id" error={errors.app_id?.message}>
+            <Input id="create-app-id" {...register('app_id')} />
+          </FormField>
+          <FormField label="名称" htmlFor="create-app-name" required error={errors.name?.message}>
+            <Input id="create-app-name" {...register('name')} />
+          </FormField>
+          <FormField
+            label="描述"
+            htmlFor="create-app-description"
+            required
+            error={errors.description?.message}
           >
-            <FormField label="应用标识" htmlFor="create-app-id" error={errors.app_id?.message}>
-              <Input id="create-app-id" {...register('app_id')} />
-            </FormField>
-            <FormField label="名称" htmlFor="create-app-name" required error={errors.name?.message}>
-              <Input id="create-app-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="描述"
-              htmlFor="create-app-description"
-              required
-              error={errors.description?.message}
+            <Input.TextArea id="create-app-description" rows={3} {...register('description')} />
+          </FormField>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreateOpen(false)
+                reset()
+              }}
             >
-              <Textarea id="create-app-description" rows={3} {...register('description')} />
-            </FormField>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setCreateOpen(false)
-                  reset()
-                }}
-              >
-                取消
-              </Button>
-              <Button type="submit" disabled={creating}>
-                {creating ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : null}
-                创建应用
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+              取消
+            </Button>
+            <Button type="submit" disabled={creating}>
+              {creating ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : null}
+              创建应用
+            </Button>
+          </div>
+        </form>
       </Dialog>
 
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除应用</DialogTitle>
-            <DialogDescription>确定删除“{pendingDelete?.name}”？删除后无法恢复。</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除应用"
+        description={`确定删除“${pendingDelete?.name ?? ''}”？删除后无法恢复。`}
+        footer={
+          <>
             <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               取消
             </Button>
@@ -253,9 +235,9 @@ export function List() {
               {deleting ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : null}
               删除应用
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </section>
   )
 }

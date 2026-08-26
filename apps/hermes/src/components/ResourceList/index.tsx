@@ -1,8 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { CalendarDays, Eye, Trash2 } from 'lucide-react'
 import { formatDateTime } from '@atlas/shared'
-import { Button } from '@atlas/ui/button'
-import { Card } from '@atlas/ui/card'
+import { Button, Card } from '@heliannuuthus/ui'
 import styles from './index.module.scss'
 
 export interface ResourceListItem {
@@ -25,15 +24,8 @@ export function ResourceList({ items, resourceLabel, onView, onDelete }: Resourc
   return (
     <ol className={styles.list}>
       {items.map((item, index) => (
-        <Card
-          key={item.id}
-          asChild
-          variant="interactive"
-          spacing="none"
-          className={styles.item}
-          style={{ '--item-index': Math.min(index, 10) } as CSSProperties}
-        >
-          <li>
+        <li key={item.id} style={{ '--item-index': Math.min(index, 10) } as CSSProperties}>
+          <Card variant="outline" className={styles.item}>
             <div className={styles.identity}>
               <span className={styles.logo} aria-hidden="true">
                 {item.logoUrl ? <img src={item.logoUrl} alt="" /> : item.fallbackIcon}
@@ -79,8 +71,8 @@ export function ResourceList({ items, resourceLabel, onView, onDelete }: Resourc
                 删除
               </Button>
             </div>
-          </li>
-        </Card>
+          </Card>
+        </li>
       ))}
     </ol>
   )

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Spinner } from '@atlas/ui/spinner'
+import { Spinner } from '@heliannuuthus/ui'
 import { List } from './List'
 import { Detail } from './Detail'
 import { Edit } from './Edit'

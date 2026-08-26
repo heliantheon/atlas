@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { Spinner } from '@atlas/ui/spinner'
+import { Spinner } from '@heliannuuthus/ui'
 import { HermesLayout } from '@/layouts'
 import { AuthCallback } from '@/pages/auth/Callback'
 import { DomainPicker } from '@/pages/DomainPicker'

@@ -1,22 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useDebounce, useRequest } from 'ahooks'
-import { Button } from '@atlas/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Input } from '@atlas/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@atlas/ui/input-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { Skeleton } from '@atlas/ui/skeleton'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Button, Dialog, Empty, Input, Select, Skeleton, toast } from '@heliannuuthus/ui'
 import { LoaderCircle, Plus, Search, Server } from 'lucide-react'
 import { eq, prefix } from '@atlas/shared'
 import { FormField } from '@/components/forms/FormField'
@@ -114,31 +99,29 @@ export function List() {
           <span>{debouncedKeyword ? `匹配“${debouncedKeyword}”` : '按创建时间 · 最新优先'}</span>
         </div>
         <div className={styles.headerActions}>
-          <InputGroup className={styles.searchGroup} role="search">
+          <div className={styles.searchGroup} role="search">
             <label className={styles.srOnly} htmlFor="service-search">
               搜索服务
             </label>
-            <Select value={searchBy} onValueChange={value => setSearchBy(value as 'id' | 'name')}>
-              <SelectTrigger className={styles.searchType}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">按名称</SelectItem>
-                <SelectItem value="id">按标识</SelectItem>
-              </SelectContent>
-            </Select>
-            <InputGroupAddon>
-              <Search aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
+            <Select<'id' | 'name'>
+              value={searchBy}
+              onChange={value => value && setSearchBy(value)}
+              classNames={{ trigger: styles.searchType }}
+              options={[
+                { label: '按名称', value: 'name' },
+                { label: '按标识', value: 'id' },
+              ]}
+            />
+            <Input
               id="service-search"
               name="service-search"
               autoComplete="off"
+              prefix={<Search aria-hidden="true" />}
               placeholder={searchBy === 'id' ? '例如 hermes…' : '输入服务名称…'}
               value={keyword}
               onChange={event => setKeyword(event.target.value)}
             />
-          </InputGroup>
+          </div>
           <Button type="button" onClick={() => setCreateDialogOpen(true)}>
             <Plus aria-hidden="true" />
             新建服务
@@ -167,12 +150,12 @@ export function List() {
           onDelete={item => setPendingDelete({ id: item.id, name: item.name })}
         />
       ) : (
-        <EmptyState
+        <Empty
           title={debouncedKeyword ? '没有匹配的服务' : '尚未创建服务'}
           description={
             debouncedKeyword ? '尝试更换关键词或搜索字段。' : '创建第一个服务以开始配置访问关系。'
           }
-          action={
+          actions={
             <Button type="button" onClick={() => setCreateDialogOpen(true)}>
               <Plus aria-hidden="true" />
               新建服务
@@ -182,73 +165,68 @@ export function List() {
         />
       )}
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新建服务</DialogTitle>
-            <DialogDescription>
-              服务标识创建后用于 API 路径和访问关系，请使用稳定名称。
-            </DialogDescription>
-          </DialogHeader>
-          <form className={styles.dialogForm} onSubmit={handleCreate}>
-            <FormField label="服务标识" htmlFor="service-id" required>
-              <Input
-                id="service-id"
-                name="service_id"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="例如 billing-api…"
-                value={draft.service_id}
-                onChange={event =>
-                  setDraft(current => ({ ...current, service_id: event.target.value }))
-                }
-              />
-            </FormField>
-            <FormField label="显示名称" htmlFor="service-name" required>
-              <Input
-                id="service-name"
-                name="name"
-                autoComplete="off"
-                placeholder="例如账单服务…"
-                value={draft.name}
-                onChange={event => setDraft(current => ({ ...current, name: event.target.value }))}
-              />
-            </FormField>
-            <FormField label="描述" htmlFor="service-description" required>
-              <Textarea
-                id="service-description"
-                name="description"
-                placeholder="说明服务职责和访问边界…"
-                value={draft.description}
-                onChange={event =>
-                  setDraft(current => ({ ...current, description: event.target.value }))
-                }
-              />
-            </FormField>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                取消
-              </Button>
-              <Button type="submit" disabled={createLoading}>
-                {createLoading ? (
-                  <LoaderCircle className={styles.spinner} aria-hidden="true" />
-                ) : null}
-                创建服务
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        title="新建服务"
+        description="服务标识创建后用于 API 路径和访问关系，请使用稳定名称。"
+      >
+        <form className={styles.dialogForm} onSubmit={handleCreate}>
+          <FormField label="服务标识" htmlFor="service-id" required>
+            <Input
+              id="service-id"
+              name="service_id"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="例如 billing-api…"
+              value={draft.service_id}
+              onChange={event =>
+                setDraft(current => ({ ...current, service_id: event.target.value }))
+              }
+            />
+          </FormField>
+          <FormField label="显示名称" htmlFor="service-name" required>
+            <Input
+              id="service-name"
+              name="name"
+              autoComplete="off"
+              placeholder="例如账单服务…"
+              value={draft.name}
+              onChange={event => setDraft(current => ({ ...current, name: event.target.value }))}
+            />
+          </FormField>
+          <FormField label="描述" htmlFor="service-description" required>
+            <Input.TextArea
+              id="service-description"
+              name="description"
+              placeholder="说明服务职责和访问边界…"
+              value={draft.description}
+              onChange={event =>
+                setDraft(current => ({ ...current, description: event.target.value }))
+              }
+            />
+          </FormField>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              取消
+            </Button>
+            <Button type="submit" disabled={createLoading}>
+              {createLoading ? (
+                <LoaderCircle className={styles.spinner} aria-hidden="true" />
+              ) : null}
+              创建服务
+            </Button>
+          </div>
+        </form>
       </Dialog>
 
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除服务</DialogTitle>
-            <DialogDescription>
-              确定删除“{pendingDelete?.name}”？关联关系和配置也会被删除，此操作无法撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除服务"
+        description={`确定删除“${pendingDelete?.name ?? ''}”？关联关系和配置也会被删除，此操作无法撤销。`}
+        footer={
+          <>
             <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               取消
             </Button>
@@ -274,9 +252,9 @@ export function List() {
               {deleting ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : null}
               删除服务
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </section>
   )
 }

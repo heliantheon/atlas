@@ -1,5 +1,5 @@
 import { LoaderCircle } from 'lucide-react'
-import { Button } from '@atlas/ui/button'
+import { Button } from '@heliannuuthus/ui'
 
 export function FormActions({
   submitting,

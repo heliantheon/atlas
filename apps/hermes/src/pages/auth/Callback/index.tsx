@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Home, RefreshCw } from 'lucide-react'
-import { Button } from '@atlas/ui/button'
-import { Spinner } from '@atlas/ui/spinner'
+import { Button, Spinner } from '@heliannuuthus/ui'
 import { useAuthCallback } from '@atlas/shared'
 import { StatusPage } from '@/components/StatusPage'
 import styles from './index.module.scss'

@@ -2,18 +2,7 @@ import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { Input } from '@atlas/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
+import { Button, Dialog, Input, Select, Tag } from '@heliannuuthus/ui'
 import { FormField } from '@/components/forms/FormField'
 
 interface NodeRef {
@@ -77,97 +66,83 @@ export function CreateRelationDialog({
       onOpenChange={next => {
         if (!next) close()
       }}
+      title="创建关系"
+      description="为两个节点建立当前服务下的授权关系。"
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>创建关系</DialogTitle>
-          <DialogDescription>为两个节点建立当前服务下的授权关系。</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2 rounded-lg border bg-muted/35 p-4 text-sm">
-          <span className="text-muted-foreground">
-            服务：<strong className="text-foreground">{serviceId || '未选择'}</strong>
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">
-              {sourceNode?.type}:{sourceNode?.id}
-            </Badge>
-            <span aria-hidden>→</span>
-            <Badge variant="outline">
-              {targetNode?.type}:{targetNode?.id}
-            </Badge>
-          </div>
+      <div className="grid gap-2 rounded-lg border bg-muted/35 p-4 text-sm">
+        <span className="text-muted-foreground">
+          服务：<strong className="text-foreground">{serviceId || '未选择'}</strong>
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tag type="info">
+            {sourceNode?.type}:{sourceNode?.id}
+          </Tag>
+          <span aria-hidden>→</span>
+          <Tag>
+            {targetNode?.type}:{targetNode?.id}
+          </Tag>
         </div>
-        <form className="grid gap-5" onSubmit={submit} noValidate>
-          <Controller
-            name="relation"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <FormField
-                label="关系类型"
-                htmlFor="relation-type"
-                required
-                error={fieldState.error?.message}
-              >
-                {custom ? (
-                  <div className="flex gap-2">
-                    <Input
-                      id="relation-type"
-                      autoFocus
-                      placeholder="输入自定义关系类型"
-                      {...field}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setCustom(false)
-                        field.onChange('')
-                      }}
-                    >
-                      选择预设
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
-                      <SelectTrigger id="relation-type">
-                        <SelectValue placeholder="选择关系类型" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {relationOptions.map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="h-auto justify-start p-0"
-                      onClick={() => {
-                        setCustom(true)
-                        field.onChange('')
-                      }}
-                    >
-                      使用自定义关系类型
-                    </Button>
-                  </div>
-                )}
-              </FormField>
-            )}
-          />
-          <FormField label="过期时间（可选）" htmlFor="relation-expires">
-            <Input id="relation-expires" type="datetime-local" {...form.register('expiresAt')} />
-          </FormField>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={close}>
-              取消
-            </Button>
-            <Button type="submit">创建</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+      </div>
+      <form className="grid gap-5" onSubmit={submit} noValidate>
+        <Controller
+          name="relation"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <FormField
+              label="关系类型"
+              htmlFor="relation-type"
+              required
+              error={fieldState.error?.message}
+            >
+              {custom ? (
+                <div className="flex gap-2">
+                  <Input id="relation-type" autoFocus placeholder="输入自定义关系类型" {...field} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCustom(false)
+                      field.onChange('')
+                    }}
+                  >
+                    选择预设
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Select<string>
+                    id="relation-type"
+                    value={field.value || null}
+                    onChange={value => field.onChange(value ?? '')}
+                    placeholder="选择关系类型"
+                    options={relationOptions.map(([value, label]) => ({ value, label }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto justify-start p-0"
+                    onClick={() => {
+                      setCustom(true)
+                      field.onChange('')
+                    }}
+                  >
+                    使用自定义关系类型
+                  </Button>
+                </div>
+              )}
+            </FormField>
+          )}
+        />
+        <FormField label="过期时间（可选）" htmlFor="relation-expires">
+          <Input id="relation-expires" type="datetime-local" {...form.register('expiresAt')} />
+        </FormField>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={close}>
+            取消
+          </Button>
+          <Button type="submit">创建</Button>
+        </div>
+      </form>
     </Dialog>
   )
 }

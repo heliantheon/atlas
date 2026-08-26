@@ -16,19 +16,7 @@ import ReactFlow, {
   type EdgeTypes,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Button } from '@atlas/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@atlas/ui/card'
-import { DataTable, type DataTableColumn } from '@atlas/ui/table'
-import { Spinner } from '@atlas/ui/spinner'
-import { toast } from '@atlas/ui/toast'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
+import { Button, Card, Dialog, Spinner, Table, toast } from '@heliannuuthus/ui'
 import { Trash2 } from 'lucide-react'
 import { serviceApi, applicationApi, groupApi, relationshipApi } from '@/services'
 import { useDomainId } from '@/contexts/DomainContext'
@@ -367,25 +355,35 @@ function GraphCanvas() {
   )
 
   // 表格列定义
-  const columns: DataTableColumn<Relationship>[] = [
-    { key: 'subject_type', header: '主体类型', width: 100, render: row => row.subject_type },
+  const columns: Table.Column<Relationship>[] = [
+    {
+      key: 'subject_type',
+      header: '主体类型',
+      width: 100,
+      render: (_value, row) => row.subject_type,
+    },
     {
       key: 'subject_id',
       header: '主体 ID',
       width: 150,
-      render: row => (
+      render: (_value, row) => (
         <code className="block max-w-40 truncate" title={row.subject_id}>
           {row.subject_id}
         </code>
       ),
     },
-    { key: 'relation', header: '关系', width: 100, render: row => row.relation },
-    { key: 'object_type', header: '对象类型', width: 100, render: row => row.object_type },
+    { key: 'relation', header: '关系', width: 100, render: (_value, row) => row.relation },
+    {
+      key: 'object_type',
+      header: '对象类型',
+      width: 100,
+      render: (_value, row) => row.object_type,
+    },
     {
       key: 'object_id',
       header: '对象 ID',
       width: 150,
-      render: row => (
+      render: (_value, row) => (
         <code className="block max-w-40 truncate" title={row.object_id}>
           {row.object_id}
         </code>
@@ -395,7 +393,7 @@ function GraphCanvas() {
       key: 'expires_at',
       header: '过期时间',
       width: 160,
-      render: row => {
+      render: (_value, row) => {
         if (!row.expires_at) return '—'
         const expiring = isExpiringSoon(row.expires_at)
         return (
@@ -409,7 +407,7 @@ function GraphCanvas() {
       key: 'actions',
       header: '操作',
       width: 80,
-      render: row => (
+      render: (_value, row) => (
         <Button
           type="button"
           variant="ghost"
@@ -484,23 +482,19 @@ function GraphCanvas() {
       </div>
 
       {/* 下方数据表格 */}
-      <Card className={styles.tableCard}>
-        <CardHeader>
-          <CardTitle className="text-base">关系明细</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {relationshipsLoading ? (
-            <div className="flex min-h-32 items-center justify-center">
-              <Spinner />
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={relationshipItems}
-              rowKey={r => `${r.service_id}:${r.subject_id}:${r.relation}:${r.object_id}`}
-            />
-          )}
-        </CardContent>
+      <Card className={styles.tableCard} header={{ title: '关系明细' }}>
+        {relationshipsLoading ? (
+          <div className="flex min-h-32 items-center justify-center">
+            <Spinner />
+          </div>
+        ) : (
+          <Table
+            columns={columns}
+            data={relationshipItems}
+            pagination={false}
+            rowKey={r => `${r.service_id}:${r.subject_id}:${r.relation}:${r.object_id}`}
+          />
+        )}
       </Card>
 
       {/* 创建关系对话框 */}
@@ -515,16 +509,13 @@ function GraphCanvas() {
           setPendingConnection(null)
         }}
       />
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除关系</DialogTitle>
-            <DialogDescription>
-              确定删除 {pendingDelete?.subject_id} → {pendingDelete?.object_id} 的“
-              {pendingDelete?.relation}”关系？
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除关系"
+        description={`确定删除 ${pendingDelete?.subject_id ?? ''} → ${pendingDelete?.object_id ?? ''} 的“${pendingDelete?.relation ?? ''}”关系？`}
+        footer={
+          <>
             <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               取消
             </Button>
@@ -543,9 +534,9 @@ function GraphCanvas() {
               <Trash2 />
               删除
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow'
-import { Button } from '@atlas/ui/button'
+import { Button } from '@heliannuuthus/ui'
 import { X, Clock } from 'lucide-react'
 import { useGraphContext } from '../context/GraphContext'
 import { isExpiringSoon } from '@atlas/shared'

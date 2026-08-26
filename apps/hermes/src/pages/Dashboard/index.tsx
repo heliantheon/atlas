@@ -1,8 +1,5 @@
 import { useMemo } from 'react'
-import { Alert, AlertDescription, AlertTitle } from '@atlas/ui/alert'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Skeleton } from '@atlas/ui/skeleton'
+import { Alert, Button, Skeleton, Tag } from '@heliannuuthus/ui'
 import {
   AppWindow,
   ArrowRight,
@@ -206,17 +203,17 @@ export function Dashboard() {
       </section>
 
       {error ? (
-        <Alert variant="warning" className={styles.dataAlert}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <AlertTitle>部分运营数据暂时不可用</AlertTitle>
-              <AlertDescription>请确认 Hermes 服务连接后重试。</AlertDescription>
-            </div>
+        <Alert
+          variant="warning"
+          className={styles.dataAlert}
+          title="部分运营数据暂时不可用"
+          description="请确认 Hermes 服务连接后重试。"
+          action={
             <Button variant="outline" size="sm" onClick={refresh}>
               重新加载
             </Button>
-          </div>
-        </Alert>
+          }
+        />
       ) : null}
 
       <section className={styles.metrics} aria-label="资源统计">
@@ -449,7 +446,7 @@ export function Dashboard() {
                   <span className={styles.activityIcon}>{activityIcons[activity.kind]}</span>
                   <div>
                     <span>
-                      <Badge variant="secondary">{activityLabels[activity.kind]}</Badge>
+                      <Tag type="info">{activityLabels[activity.kind]}</Tag>
                       <strong>{activity.name}</strong>
                     </span>
                     <small>{formatRelativeTime(activity.time)}</small>
