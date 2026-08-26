@@ -124,6 +124,7 @@ export interface ApplicationSecret {
 }
 
 export interface Relationship {
+  relationship_id?: number
   service_id: string
   subject_type: 'user' | 'group' | 'application'
   subject_id: string
@@ -173,7 +174,7 @@ export interface ServiceUpdateRequest {
 
 export interface ApplicationCreateRequest {
   domain_id: string
-  app_id: string
+  app_id?: string
   name: string
   description: string
   allowed_redirect_uris?: string[]

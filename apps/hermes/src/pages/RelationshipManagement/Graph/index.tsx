@@ -92,8 +92,19 @@ function GraphCanvas() {
   } = useRequest(
     () =>
       collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
-    { ready: !!domainId }
+    { ready: !!domainId, refreshDeps: [domainId] }
   )
+
+  useEffect(() => {
+    if (
+      !urlServiceId &&
+      selectedServiceId &&
+      services &&
+      !services.some(service => service.service_id === selectedServiceId)
+    ) {
+      setSelectedServiceId('')
+    }
+  }, [selectedServiceId, services, setSelectedServiceId, urlServiceId])
 
   const {
     data: applications,
@@ -105,7 +116,7 @@ function GraphCanvas() {
       collectCursorPages(token =>
         applicationApi.getList(domainId!, undefined, { token, size: 100 })
       ),
-    { ready: !!domainId }
+    { ready: !!domainId, refreshDeps: [domainId] }
   )
 
   const {
@@ -113,8 +124,12 @@ function GraphCanvas() {
     loading: groupsLoading,
     error: groupsError,
     refresh: refreshGroups,
-  } = useRequest(() =>
-    collectCursorPages(token => groupApi.getList(undefined, { token, size: 100 }))
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        groupApi.getList({ service_id: selectedServiceId }, { token, size: 100 })
+      ),
+    { ready: Boolean(selectedServiceId), refreshDeps: [selectedServiceId] }
   )
 
   const {

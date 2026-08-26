@@ -18,3 +18,14 @@ export async function collectCursorPages<T>(
 
   return items
 }
+
+/** Collect independent cursor streams while preserving the caller's scope boundary. */
+export async function collectScopedCursorPages<T>(
+  scopes: string[],
+  fetchPage: (scope: string, token?: string) => Promise<Items<T>>
+): Promise<T[]> {
+  const pages = await Promise.all(
+    scopes.map(scope => collectCursorPages(token => fetchPage(scope, token)))
+  )
+  return pages.flat()
+}

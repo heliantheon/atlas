@@ -57,11 +57,11 @@ export function Detail() {
     () =>
       collectCursorPages(token =>
         relationshipApi.getList(
-          { subject_type: 'group', subject_id: groupId },
+          { service_id: data?.service_id, subject_type: 'group', subject_id: groupId },
           { token, size: 100 }
         )
       ),
-    { ready: Boolean(groupId) }
+    { ready: Boolean(groupId && data?.service_id), refreshDeps: [groupId, data?.service_id] }
   )
   const memberRows = members?.members ?? []
   const relationRows = relationships ?? []

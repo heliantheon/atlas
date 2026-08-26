@@ -17,7 +17,7 @@ import { formatRelativeTime, isExpiringSoon } from '@atlas/shared'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi, groupApi, relationshipApi, serviceApi } from '@/services'
 import type { Application, Group, Relationship, Service } from '@/types'
-import { collectCursorPages } from '@/utils/pagination'
+import { collectCursorPages, collectScopedCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 type ResourceKind = 'application' | 'service' | 'group' | 'relationship'
@@ -88,25 +88,29 @@ export function Dashboard() {
 
   const { data, loading, error, refresh } = useRequest(
     async () => {
-      const [domain, servicesData, applicationsData, groupsData, relationshipsData] =
-        await Promise.all([
-          domainApi.getDetail(domainId!),
-          collectCursorPages(token =>
-            serviceApi.getList(domainId!, undefined, { token, size: 100 })
-          ),
-          collectCursorPages(token =>
-            applicationApi.getList(domainId!, undefined, { token, size: 100 })
-          ),
-          collectCursorPages(token => groupApi.getList(undefined, { token, size: 100 })),
-          collectCursorPages(token => relationshipApi.getList(undefined, { token, size: 100 })),
-        ])
+      const [domain, servicesData, applicationsData] = await Promise.all([
+        domainApi.getDetail(domainId!),
+        collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+        collectCursorPages(token =>
+          applicationApi.getList(domainId!, undefined, { token, size: 100 })
+        ),
+      ])
+      const serviceIds = servicesData.map(service => service.service_id)
+      const [groupsData, relationshipsData] = await Promise.all([
+        collectScopedCursorPages(serviceIds, (serviceId, token) =>
+          groupApi.getList({ service_id: serviceId }, { token, size: 100 })
+        ),
+        collectScopedCursorPages(serviceIds, (serviceId, token) =>
+          relationshipApi.getList({ service_id: serviceId }, { token, size: 100 })
+        ),
+      ])
 
       return {
         domain,
         services: servicesData,
         applications: applicationsData,
-        allGroups: groupsData,
-        allRelationships: relationshipsData,
+        groups: groupsData,
+        relationships: relationshipsData,
       }
     },
     { ready: Boolean(domainId), refreshDeps: [domainId] }
@@ -115,11 +119,8 @@ export function Dashboard() {
   const viewModel = useMemo(() => {
     const services = data?.services ?? []
     const applications = data?.applications ?? []
-    const serviceIds = new Set(services.map(service => service.service_id))
-    const groups = (data?.allGroups ?? []).filter(group => serviceIds.has(group.service_id))
-    const relationships = (data?.allRelationships ?? []).filter(relation =>
-      serviceIds.has(relation.service_id)
-    )
+    const groups = data?.groups ?? []
+    const relationships = data?.relationships ?? []
     const servicesWithRelations = new Set(relationships.map(relation => relation.service_id))
     const coverage = services.length
       ? Math.round((servicesWithRelations.size / services.length) * 100)

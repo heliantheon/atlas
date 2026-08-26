@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRequest } from 'ahooks'
 import { GitBranch, LoaderCircle, Pencil, Plus, Share2, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
@@ -16,9 +16,10 @@ import {
   toast,
 } from '@heliannuuthus/ui'
 import { formatRelativeTime, isExpiringSoon } from '@atlas/shared'
-import { useAppNavigate } from '@/contexts/DomainContext'
-import { relationshipApi } from '@/services'
+import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
+import { relationshipApi, serviceApi } from '@/services'
 import type { Relationship } from '@/types'
+import { collectCursorPages, collectScopedCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 const subjectTypeLabels: Record<string, string> = { user: '用户', group: '组', application: '应用' }
@@ -34,24 +35,57 @@ function toDateTimeLocal(value?: string) {
 export function List() {
   const { serviceId: urlServiceId } = useParams<{ serviceId: string }>()
   const navigate = useAppNavigate()
+  const domainId = useDomainId()
   const [subjectType, setSubjectType] = useState<string>('all')
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('all')
   const [pendingDelete, setPendingDelete] = useState<Relationship | null>(null)
   const [pendingEdit, setPendingEdit] = useState<Relationship | null>(null)
   const [editRelation, setEditRelation] = useState('')
   const [editExpiresAt, setEditExpiresAt] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [updating, setUpdating] = useState(false)
+  useEffect(() => setSelectedServiceId('all'), [domainId])
+  const activeServiceId =
+    urlServiceId || (selectedServiceId === 'all' ? undefined : selectedServiceId)
   const filter = {
-    service_id: urlServiceId,
+    service_id: activeServiceId,
     subject_type: subjectType === 'all' ? undefined : subjectType,
   }
+  const {
+    data: services,
+    loading: servicesLoading,
+    error: servicesError,
+    refresh: refreshServices,
+  } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+    { ready: Boolean(domainId && !urlServiceId), refreshDeps: [domainId, urlServiceId] }
+  )
   const { data, loading, error, refresh, mutate } = useRequest(
-    () => relationshipApi.getList(filter, { size: 20 }),
-    { refreshDeps: [urlServiceId, subjectType] }
+    async () => {
+      if (activeServiceId) return relationshipApi.getList(filter, { size: 20 })
+      const serviceIds = (services ?? []).map(service => service.service_id)
+      const items = await collectScopedCursorPages(serviceIds, (serviceId, token) =>
+        relationshipApi.getList(
+          {
+            service_id: serviceId,
+            subject_type: subjectType === 'all' ? undefined : subjectType,
+          },
+          { token, size: 100 }
+        )
+      )
+      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      return { items }
+    },
+    {
+      ready: Boolean(activeServiceId || services !== undefined),
+      refreshDeps: [activeServiceId, services, subjectType],
+    }
   )
   const { run: loadMore, loading: loadingMore } = useRequest(
     async () => {
       if (!data?.next) return
+      if (!activeServiceId) return
       const nextPage = await relationshipApi.getList(filter, { token: data.next, size: 20 })
       mutate({ items: [...data.items, ...nextPage.items], next: nextPage.next })
     },
@@ -224,25 +258,50 @@ export function List() {
         }}
       >
         <div className="grid gap-4">
-          <Select<string>
-            value={subjectType}
-            onChange={value => setSubjectType(value ?? 'all')}
-            classNames={{ trigger: 'w-40' }}
-            options={[
-              { label: '全部主体', value: 'all' },
-              { label: '用户', value: 'user' },
-              { label: '组', value: 'group' },
-              { label: '应用', value: 'application' },
-            ]}
-          />
-          {error ? (
+          <div className="flex flex-wrap gap-3">
+            {!urlServiceId ? (
+              <Select<string>
+                value={selectedServiceId}
+                onChange={value => setSelectedServiceId(value ?? 'all')}
+                classNames={{ trigger: 'w-52' }}
+                options={[
+                  { label: '全部当前域服务', value: 'all' },
+                  ...(services ?? []).map(service => ({
+                    label: service.name || service.service_id,
+                    value: service.service_id,
+                  })),
+                ]}
+              />
+            ) : null}
+            <Select<string>
+              value={subjectType}
+              onChange={value => setSubjectType(value ?? 'all')}
+              classNames={{ trigger: 'w-40' }}
+              options={[
+                { label: '全部主体', value: 'all' },
+                { label: '用户', value: 'user' },
+                { label: '组', value: 'group' },
+                { label: '应用', value: 'application' },
+              ]}
+            />
+          </div>
+          {error || servicesError ? (
             <Alert
               variant="error"
               title="关系列表加载失败"
               description="无法读取 Hermes 关系管理接口。"
-              action={<Button onClick={refresh}>重新加载</Button>}
+              action={
+                <Button
+                  onClick={() => {
+                    refresh()
+                    if (!urlServiceId) refreshServices()
+                  }}
+                >
+                  重新加载
+                </Button>
+              }
             />
-          ) : loading ? (
+          ) : loading || servicesLoading ? (
             <div className="flex min-h-40 items-center justify-center">
               <Spinner />
             </div>

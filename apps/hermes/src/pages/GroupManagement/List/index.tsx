@@ -4,7 +4,7 @@ import { Alert, Button, Card, Empty, Spinner, Table } from '@heliannuuthus/ui'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { groupApi, serviceApi } from '@/services'
 import type { Group } from '@/types'
-import { collectCursorPages } from '@/utils/pagination'
+import { collectCursorPages, collectScopedCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 export function List() {
@@ -12,12 +12,13 @@ export function List() {
   const domainId = useDomainId()
   const { data, loading, error, refresh } = useRequest(
     async () => {
-      const [allGroups, allServices] = await Promise.all([
-        collectCursorPages(token => groupApi.getList(undefined, { token, size: 100 })),
-        collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
-      ])
-      const serviceIds = new Set(allServices.map(service => service.service_id))
-      return allGroups.filter(group => serviceIds.has(group.service_id))
+      const services = await collectCursorPages(token =>
+        serviceApi.getList(domainId!, undefined, { token, size: 100 })
+      )
+      return collectScopedCursorPages(
+        services.map(service => service.service_id),
+        (serviceId, token) => groupApi.getList({ service_id: serviceId }, { token, size: 100 })
+      )
     },
     { ready: Boolean(domainId), refreshDeps: [domainId] }
   )

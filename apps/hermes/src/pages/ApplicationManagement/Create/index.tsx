@@ -66,7 +66,7 @@ export function Create() {
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
       await applicationApi.create(domainId!, {
-        app_id: values.app_id,
+        app_id: values.app_id || undefined,
         name: values.name,
         description: values.description,
         allowed_redirect_uris: lines(values.allowed_redirect_uris),

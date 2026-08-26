@@ -13,7 +13,7 @@ import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 const schema = z.object({
-  service_id: z.string(),
+  service_id: z.string().min(1, '请选择服务'),
   subject_type: z.enum(['user', 'group', 'application'], { message: '请选择主体类型' }),
   subject_id: z.string().trim().min(1, '请输入主体 ID'),
   relation: z.string().trim().min(1, '请输入关系'),

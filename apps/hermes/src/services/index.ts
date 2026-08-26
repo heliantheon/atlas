@@ -171,24 +171,25 @@ export const relationshipApi = {
   getScopedList: (
     appId: string,
     serviceId: string,
-    params?: { subject_type?: string; subject_id?: string; cursor?: string; limit?: number }
+    filter?: FilterSpec,
+    pagination?: { token?: string; size?: number }
   ) =>
     request.get<Items<Relationship>>(`/applications/${appId}/services/${serviceId}/relationships`, {
-      params,
+      params: listParams(filter, pagination),
     }),
   createScoped: (appId: string, serviceId: string, data: AppServiceRelationshipCreateRequest) =>
     request.post<Relationship>(`/applications/${appId}/services/${serviceId}/relationships`, data),
   updateScoped: (
     appId: string,
     serviceId: string,
-    relationshipId: string,
+    relationshipId: number,
     data: AppServiceRelationshipUpdateRequest
   ) =>
     request.patch(
       `/applications/${appId}/services/${serviceId}/relationships/${relationshipId}`,
       data
     ),
-  deleteScoped: (appId: string, serviceId: string, relationshipId: string) =>
+  deleteScoped: (appId: string, serviceId: string, relationshipId: number) =>
     request.delete(`/applications/${appId}/services/${serviceId}/relationships/${relationshipId}`),
 }
 

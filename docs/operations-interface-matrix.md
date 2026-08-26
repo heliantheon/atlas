@@ -19,7 +19,7 @@ legacy mocks.
 | Application identity providers | `GET/POST .../applications/:app_id/idp-configs`, `PATCH/DELETE .../:idp_type`                                    | Application sign-in policy                              | Present, but fields drift from backend DTO                 |
 | Application service grants     | `GET .../applications/:app_id/relations`                                                                         | Service permission view                                 | Present                                                    |
 | Relationships                  | `GET/POST/PATCH/DELETE /api/relationships`                                                                       | Relationship list, editor, graph                        | Update missing                                             |
-| Scoped relationships           | `GET/POST .../applications/:app_id/services/:service_id/relationships`, `PATCH/DELETE .../:relationship_id`      | Application-service relationship workbench              | Backend response omits required relationship ID            |
+| Scoped relationships           | `GET/POST .../applications/:app_id/services/:service_id/relationships`, `PATCH/DELETE .../:relationship_id`      | Application-service relationship workbench              | Backend response identifier added with regression coverage |
 | Groups                         | `GET/POST /api/groups`, `GET/PATCH/DELETE /api/groups/:group_id`                                                 | Group workbench                                         | Delete missing; create request omits required `service_id` |
 | Group members                  | `GET/POST /api/groups/:group_id/members`                                                                         | Membership editor                                       | Read-only; full-set mutation not wired                     |
 
@@ -27,13 +27,9 @@ Hermes list endpoints use cursor pagination and return `{ items, next? }`.
 Domain and IDP configuration lists return arrays. Mutations use JSON Merge Patch
 semantics where the backend DTO uses optional patch values.
 
-The scoped relationship mutation contract is not currently consumable without
-guessing: list and create responses intentionally map through
-`RelationshipResponse`, which omits the database relationship ID, while scoped
-`PATCH` and `DELETE` require `:relationship_id`. Atlas exposes the complete
-generic relationship editor and records the scoped workbench as backend-blocked
-until Hermes returns an opaque mutation identifier or adopts the composite key
-used by the generic endpoints.
+Scoped relationship list and create responses expose `relationship_id`, the
+opaque identifier required by scoped `PATCH` and `DELETE`. Generic relationship
+mutations continue to use the documented composite key.
 
 ## Chaos
 
@@ -50,17 +46,17 @@ Chaos has no file-list or object-delete management endpoint. Atlas therefore
 shows the current upload queue and returned object URLs only; it must not imply
 that it can browse or delete the whole bucket.
 
-The deployed Chaos template handlers currently serialize the Go persistence
-model directly, yielding PascalCase response fields. Atlas normalizes that wire
-format in the Chaos service module and also accepts the intended snake_case
-contract, so page components consume one stable `EmailTemplate` model without
-depending on database field names.
+Chaos template handlers and Atlas consume one snake_case contract. The previous
+PascalCase persistence-model compatibility path was removed after the backend
+contract was deployed.
 
 ## Rewrite completion
 
 - Hermes service, application, group and relationship collections follow every
   opaque cursor until completion where a full dataset is required; interactive
   lists expose explicit load-more controls and server-side filters.
+- Domain workspaces query groups and relationships through their visible service
+  IDs instead of loading global datasets and filtering them in the browser.
 - Full service and application creation pages are the only creation paths, so
   secret generation, redirect/origin policy, logo and token expiry fields are
   not discarded by simplified dialogs.

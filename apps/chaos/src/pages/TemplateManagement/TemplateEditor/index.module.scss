@@ -85,8 +85,8 @@
   color: #778493;
   font-size: 0.67rem;
 }
-.fieldError {
-  color: #a53535 !important;
+.editor label > small.fieldError {
+  color: var(--destructive);
 }
 .codeInput {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
