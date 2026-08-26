@@ -1,4 +1,4 @@
-import { Auth } from '@heliannuuthus/aegis-ts'
+import { Auth } from '@heliantheons/aegis-ts'
 import { apiEndpoints } from './env'
 
 export const authConfig = {
