@@ -21,8 +21,6 @@ spec:
     spec:
       serviceAccountName: hermes-ui
       automountServiceAccountToken: false
-      imagePullSecrets:
-        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 101
