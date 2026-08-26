@@ -9,6 +9,7 @@ import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { relationshipApi, serviceApi } from '@/services'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 const schema = z.object({
@@ -43,9 +44,11 @@ export function Create() {
       expires_at: '',
     },
   })
-  const { data: services } = useRequest(() => serviceApi.getList(domainId!), {
-    ready: Boolean(domainId && !urlServiceId),
-  })
+  const { data: services } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+    { ready: Boolean(domainId && !urlServiceId) }
+  )
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
       await relationshipApi.create({
@@ -85,7 +88,7 @@ export function Create() {
                     onChange={field.onChange}
                     placeholder="请选择服务"
                     triggerProps={{ id: 'relationship-service' }}
-                    options={(services?.items ?? []).map(service => ({
+                    options={(services ?? []).map(service => ({
                       label: service.name,
                       value: service.service_id,
                     }))}

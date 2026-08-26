@@ -1,12 +1,34 @@
 import { useState, type ReactNode } from 'react'
 import { useRequest } from 'ahooks'
-import { GitBranch, Info, LoaderCircle, Share2, Trash2, User, Users } from 'lucide-react'
+import {
+  GitBranch,
+  Info,
+  LoaderCircle,
+  Share2,
+  Trash2,
+  User,
+  UserRoundCog,
+  Users,
+} from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Button, Card, Dialog, Empty, Spinner, Table, Tabs, Tag, toast } from '@heliannuuthus/ui'
+import {
+  Alert,
+  Button,
+  Card,
+  Dialog,
+  Empty,
+  Input,
+  Spinner,
+  Table,
+  Tabs,
+  Tag,
+  toast,
+} from '@heliannuuthus/ui'
 import { PageHeader, formatDateTime, formatRelativeTime, isExpiringSoon } from '@atlas/shared'
 import { useAppNavigate } from '@/contexts/DomainContext'
 import { groupApi, relationshipApi } from '@/services'
 import type { Relationship } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 export function Detail() {
@@ -14,20 +36,35 @@ export function Detail() {
   const navigate = useAppNavigate()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const { data, loading } = useRequest(() => groupApi.getDetail(groupId!), {
+  const [membersOpen, setMembersOpen] = useState(false)
+  const [memberDraft, setMemberDraft] = useState('')
+  const [savingMembers, setSavingMembers] = useState(false)
+  const { data, loading, error, refresh } = useRequest(() => groupApi.getDetail(groupId!), {
     ready: Boolean(groupId),
-    onError: () => toast.error('获取组信息失败'),
   })
-  const { data: members, loading: membersLoading } = useRequest(
-    () => groupApi.getMembers(groupId!),
-    { ready: Boolean(groupId) }
-  )
-  const { data: relationships, loading: relationsLoading } = useRequest(
-    () => relationshipApi.getList({ subject_type: 'group', subject_id: groupId }),
+  const {
+    data: members,
+    loading: membersLoading,
+    error: membersError,
+    refresh: refreshMembers,
+  } = useRequest(() => groupApi.getMembers(groupId!), { ready: Boolean(groupId) })
+  const {
+    data: relationships,
+    loading: relationsLoading,
+    error: relationsError,
+    refresh: refreshRelations,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        relationshipApi.getList(
+          { subject_type: 'group', subject_id: groupId },
+          { token, size: 100 }
+        )
+      ),
     { ready: Boolean(groupId) }
   )
   const memberRows = members?.members ?? []
-  const relationRows = relationships?.items ?? []
+  const relationRows = relationships ?? []
   const deleteGroup = async () => {
     if (!groupId) return
     setDeleting(true)
@@ -39,6 +76,32 @@ export function Detail() {
       toast.error('删除用户组失败')
     } finally {
       setDeleting(false)
+    }
+  }
+  const openMembers = () => {
+    setMemberDraft(memberRows.join('\n'))
+    setMembersOpen(true)
+  }
+  const saveMembers = async () => {
+    if (!groupId) return
+    const userIds = [
+      ...new Set(
+        memberDraft
+          .split(/[\s,]+/)
+          .map(value => value.trim())
+          .filter(Boolean)
+      ),
+    ]
+    setSavingMembers(true)
+    try {
+      await groupApi.setMembers(groupId, { group_id: groupId, user_ids: userIds })
+      await refreshMembers()
+      setMembersOpen(false)
+      toast.success('组成员已更新')
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : '更新组成员失败')
+    } finally {
+      setSavingMembers(false)
     }
   }
   const columns: Table.Column<Relationship>[] = [
@@ -86,7 +149,14 @@ export function Detail() {
         <Spinner className="size-7" />
       </div>
     )
-  if (!data) return null
+  if (error || !data)
+    return (
+      <Empty
+        title="无法读取用户组"
+        description="该用户组不存在，或 Hermes 管理接口暂时不可用。"
+        actions={<Button onClick={refresh}>重试</Button>}
+      />
+    )
   const detailItems: Array<{ label: string; value: ReactNode; wide?: boolean }> = [
     { label: '组 ID', value: <code>{data.group_id}</code> },
     { label: '所属服务', value: <code>{data.service_id}</code> },
@@ -156,8 +226,18 @@ export function Detail() {
                   <div className={styles.membersTab}>
                     <div className={styles.tabHeader}>
                       <span className="text-sm text-muted-foreground">该组包含的用户成员</span>
+                      <Button variant="outline" onClick={openMembers}>
+                        <UserRoundCog />
+                        管理成员
+                      </Button>
                     </div>
-                    {membersLoading ? (
+                    {membersError ? (
+                      <Alert
+                        variant="error"
+                        title="组成员加载失败"
+                        action={<Button onClick={refreshMembers}>重试</Button>}
+                      />
+                    ) : membersLoading ? (
                       <div className={styles.loading}>
                         <Spinner />
                       </div>
@@ -198,7 +278,13 @@ export function Detail() {
                         在图谱中查看
                       </Button>
                     </div>
-                    {relationsLoading ? (
+                    {relationsError ? (
+                      <Alert
+                        variant="error"
+                        title="授权关系加载失败"
+                        action={<Button onClick={refreshRelations}>重试</Button>}
+                      />
+                    ) : relationsLoading ? (
                       <div className={styles.loading}>
                         <Spinner />
                       </div>
@@ -237,6 +323,43 @@ export function Detail() {
           </>
         }
       />
+      <Dialog
+        open={membersOpen}
+        onOpenChange={open => {
+          if (!savingMembers) setMembersOpen(open)
+        }}
+        title="管理组成员"
+        description="这里提交的是完整成员集合；移除某一行会把对应用户移出该组。支持换行、空格或逗号分隔。"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              disabled={savingMembers}
+              onClick={() => setMembersOpen(false)}
+            >
+              取消
+            </Button>
+            <Button disabled={savingMembers} onClick={() => void saveMembers()}>
+              {savingMembers ? <LoaderCircle className="animate-spin" /> : null}
+              保存成员
+            </Button>
+          </>
+        }
+      >
+        <label className="grid gap-2 text-sm font-medium" htmlFor="group-members">
+          用户 ID
+          <Input.TextArea
+            id="group-members"
+            rows={10}
+            value={memberDraft}
+            onChange={event => setMemberDraft(event.target.value)}
+            placeholder="每行一个用户 ID"
+          />
+          <span className="text-xs font-normal text-muted-foreground">
+            当前解析出 {new Set(memberDraft.split(/[\s,]+/).filter(Boolean)).size} 个成员。
+          </span>
+        </label>
+      </Dialog>
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { formatRelativeTime, isExpiringSoon } from '@atlas/shared'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi, groupApi, relationshipApi, serviceApi } from '@/services'
 import type { Application, Group, Relationship, Service } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 type ResourceKind = 'application' | 'service' | 'group' | 'relationship'
@@ -90,18 +91,22 @@ export function Dashboard() {
       const [domain, servicesData, applicationsData, groupsData, relationshipsData] =
         await Promise.all([
           domainApi.getDetail(domainId!),
-          serviceApi.getList(domainId!),
-          applicationApi.getList(domainId!),
-          groupApi.getList(),
-          relationshipApi.getList(),
+          collectCursorPages(token =>
+            serviceApi.getList(domainId!, undefined, { token, size: 100 })
+          ),
+          collectCursorPages(token =>
+            applicationApi.getList(domainId!, undefined, { token, size: 100 })
+          ),
+          collectCursorPages(token => groupApi.getList(undefined, { token, size: 100 })),
+          collectCursorPages(token => relationshipApi.getList(undefined, { token, size: 100 })),
         ])
 
       return {
         domain,
-        services: servicesData.items ?? [],
-        applications: applicationsData.items ?? [],
-        allGroups: groupsData.items ?? [],
-        allRelationships: relationshipsData.items ?? [],
+        services: servicesData,
+        applications: applicationsData,
+        allGroups: groupsData,
+        allRelationships: relationshipsData,
       }
     },
     { ready: Boolean(domainId), refreshDeps: [domainId] }
@@ -195,7 +200,7 @@ export function Dashboard() {
             <ArrowLeftRight />
             切换工作域
           </Button>
-          <Button onClick={() => navigate('applications', { state: { openCreate: true } })}>
+          <Button onClick={() => navigate('applications/create')}>
             <Plus />
             创建应用
           </Button>

@@ -7,6 +7,7 @@ import {
   Card,
   Dialog,
   Empty,
+  Alert,
   Input,
   Select,
   Spinner,
@@ -40,13 +41,21 @@ export function List() {
   const [editExpiresAt, setEditExpiresAt] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [updating, setUpdating] = useState(false)
-  const { data, loading, refresh } = useRequest(
-    () =>
-      relationshipApi.getList({
-        service_id: urlServiceId,
-        subject_type: subjectType === 'all' ? undefined : subjectType,
-      }),
+  const filter = {
+    service_id: urlServiceId,
+    subject_type: subjectType === 'all' ? undefined : subjectType,
+  }
+  const { data, loading, error, refresh, mutate } = useRequest(
+    () => relationshipApi.getList(filter, { size: 20 }),
     { refreshDeps: [urlServiceId, subjectType] }
+  )
+  const { run: loadMore, loading: loadingMore } = useRequest(
+    async () => {
+      if (!data?.next) return
+      const nextPage = await relationshipApi.getList(filter, { token: data.next, size: 20 })
+      mutate({ items: [...data.items, ...nextPage.items], next: nextPage.next })
+    },
+    { manual: true, onError: () => toast.error('加载更多关系失败') }
   )
   const relationships = data?.items ?? []
   const deleteRelationship = useCallback(async () => {
@@ -226,7 +235,14 @@ export function List() {
               { label: '应用', value: 'application' },
             ]}
           />
-          {loading ? (
+          {error ? (
+            <Alert
+              variant="error"
+              title="关系列表加载失败"
+              description="无法读取 Hermes 关系管理接口。"
+              action={<Button onClick={refresh}>重新加载</Button>}
+            />
+          ) : loading ? (
             <div className="flex min-h-40 items-center justify-center">
               <Spinner />
             </div>
@@ -242,6 +258,14 @@ export function List() {
           ) : (
             <Empty title="暂无关系数据" icon={<Share2 className="size-8" />} actions={actions} />
           )}
+          {data?.next ? (
+            <div className="flex justify-center">
+              <Button variant="outline" disabled={loadingMore} onClick={loadMore}>
+                {loadingMore ? <Spinner /> : null}
+                加载更多关系
+              </Button>
+            </div>
+          ) : null}
         </div>
       </Card>
       <Dialog

@@ -8,6 +8,7 @@ import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { groupApi, serviceApi } from '@/services'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 const schema = z.object({
@@ -31,7 +32,8 @@ export function Create() {
     defaultValues: { group_id: '', service_id: '', name: '', description: '' },
   })
   const { data: services, loading: servicesLoading } = useRequest(
-    () => serviceApi.getList(domainId!),
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
     { ready: Boolean(domainId) }
   )
   const { run: submit, loading } = useRequest(
@@ -67,7 +69,7 @@ export function Create() {
                   disabled={servicesLoading}
                   placeholder="选择当前域中的服务"
                   triggerProps={{ id: 'group-service' }}
-                  options={(services?.items ?? []).map(service => ({
+                  options={(services ?? []).map(service => ({
                     label: service.name || service.service_id,
                     value: service.service_id,
                   }))}

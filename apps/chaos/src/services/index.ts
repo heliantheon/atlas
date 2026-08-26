@@ -15,6 +15,57 @@ export interface EmailTemplate {
   updated_at: string
 }
 
+/**
+ * Chaos currently serializes its persistence model directly, so deployed
+ * versions return Go field names while the intended public contract uses
+ * snake_case. Keep that wire-format discrepancy at the service boundary.
+ */
+interface EmailTemplateWire {
+  template_id?: string
+  TemplateID?: string
+  name?: string
+  Name?: string
+  description?: string | null
+  Description?: string | null
+  subject?: string
+  Subject?: string
+  content?: string
+  Content?: string
+  type?: string
+  Type?: string
+  variables?: string | null
+  Variables?: string | null
+  service_id?: string | null
+  ServiceID?: string | null
+  is_builtin?: boolean
+  IsBuiltin?: boolean
+  is_enabled?: boolean
+  IsEnabled?: boolean
+  created_at?: string
+  CreatedAt?: string
+  updated_at?: string
+  UpdatedAt?: string
+}
+
+function normalizeTemplate(value: EmailTemplateWire): EmailTemplate {
+  const templateId = value.template_id ?? value.TemplateID
+  if (!templateId) throw new Error('Chaos 模板响应缺少 template_id')
+  return {
+    template_id: templateId,
+    name: value.name ?? value.Name ?? '',
+    description: value.description ?? value.Description ?? undefined,
+    subject: value.subject ?? value.Subject ?? '',
+    content: value.content ?? value.Content ?? '',
+    type: value.type ?? value.Type ?? 'html',
+    variables: value.variables ?? value.Variables ?? undefined,
+    service_id: value.service_id ?? value.ServiceID ?? undefined,
+    is_builtin: value.is_builtin ?? value.IsBuiltin ?? false,
+    is_enabled: value.is_enabled ?? value.IsEnabled ?? false,
+    created_at: value.created_at ?? value.CreatedAt ?? '',
+    updated_at: value.updated_at ?? value.UpdatedAt ?? '',
+  }
+}
+
 export interface FileUploadResult {
   key: string
   file_name: string
@@ -61,12 +112,16 @@ export interface RenderResponse {
 }
 
 export const chaosTemplateApi = {
-  getList: (serviceId?: string) =>
-    request.get<EmailTemplate[]>('/templates', {
+  getList: async (serviceId?: string) => {
+    const templates = await request.get<EmailTemplateWire[]>('/templates', {
       params: serviceId ? { service_id: serviceId } : undefined,
-    }),
-  getDetail: (templateId: string) => request.get<EmailTemplate>(`/templates/${templateId}`),
-  create: (data: TemplateCreateRequest) => request.post<EmailTemplate>('/templates', data),
+    })
+    return templates.map(normalizeTemplate)
+  },
+  getDetail: async (templateId: string) =>
+    normalizeTemplate(await request.get<EmailTemplateWire>(`/templates/${templateId}`)),
+  create: async (data: TemplateCreateRequest) =>
+    normalizeTemplate(await request.post<EmailTemplateWire>('/templates', data)),
   update: (templateId: string, data: TemplateUpdateRequest) =>
     request.patch(`/templates/${templateId}`, data),
   delete: (templateId: string) => request.delete(`/templates/${templateId}`),

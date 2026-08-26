@@ -1,30 +1,44 @@
 import { useRequest } from 'ahooks'
 import { AppWindow, Info, Plus, Server } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Button, Card, Empty, Spinner, Table, Tabs, Tag, toast } from '@heliannuuthus/ui'
+import { Alert, Button, Card, Empty, Spinner, Table, Tabs, Tag } from '@heliannuuthus/ui'
 import { PageHeader, formatDateTime, formatDuration } from '@atlas/shared'
 import { useAppNavigate } from '@/contexts/DomainContext'
 import { applicationApi, domainApi, serviceApi } from '@/services'
 import type { Application, Service } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 export function Detail() {
   const { domainId } = useParams<{ domainId: string }>()
   const navigate = useAppNavigate()
-  const { data, loading } = useRequest(() => domainApi.getDetail(domainId!), {
+  const { data, loading, error, refresh } = useRequest(() => domainApi.getDetail(domainId!), {
     ready: Boolean(domainId),
-    onError: () => toast.error('获取域信息失败'),
   })
-  const { data: services, loading: servicesLoading } = useRequest(
-    () => serviceApi.getList(domainId!),
+  const {
+    data: services,
+    loading: servicesLoading,
+    error: servicesError,
+    refresh: refreshServices,
+  } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
     { ready: Boolean(domainId) }
   )
-  const { data: applications, loading: appsLoading } = useRequest(
-    () => applicationApi.getList(domainId!),
+  const {
+    data: applications,
+    loading: appsLoading,
+    error: appsError,
+    refresh: refreshApps,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        applicationApi.getList(domainId!, undefined, { token, size: 100 })
+      ),
     { ready: Boolean(domainId) }
   )
-  const serviceRows = services?.items ?? []
-  const applicationRows = applications?.items ?? []
+  const serviceRows = services ?? []
+  const applicationRows = applications ?? []
   const serviceColumns: Table.Column<Service>[] = [
     {
       key: 'service_id',
@@ -80,7 +94,14 @@ export function Detail() {
         <Spinner className="size-7" />
       </div>
     )
-  if (!data) return null
+  if (error || !data)
+    return (
+      <Empty
+        title="无法读取域信息"
+        description="该域不存在，或 Hermes 管理接口暂时不可用。"
+        actions={<Button onClick={refresh}>重试</Button>}
+      />
+    )
   return (
     <div className={styles.container}>
       <PageHeader title={data.name || '域详情'} onBack={() => navigate('/')} />
@@ -138,14 +159,18 @@ export function Detail() {
                   <div className={styles.relationshipsTab}>
                     <div className={styles.tabHeader}>
                       <span className="text-sm text-muted-foreground">该域下的所有服务</span>
-                      <Button
-                        onClick={() => navigate('/services', { state: { openCreate: true } })}
-                      >
+                      <Button onClick={() => navigate('/services/create')}>
                         <Plus />
                         新建服务
                       </Button>
                     </div>
-                    {servicesLoading ? (
+                    {servicesError ? (
+                      <Alert
+                        variant="error"
+                        title="服务列表加载失败"
+                        action={<Button onClick={refreshServices}>重试</Button>}
+                      />
+                    ) : servicesLoading ? (
                       <div className="flex min-h-40 items-center justify-center">
                         <Spinner />
                       </div>
@@ -177,14 +202,18 @@ export function Detail() {
                   <div className={styles.relationshipsTab}>
                     <div className={styles.tabHeader}>
                       <span className="text-sm text-muted-foreground">该域下的所有应用</span>
-                      <Button
-                        onClick={() => navigate('/applications', { state: { openCreate: true } })}
-                      >
+                      <Button onClick={() => navigate('/applications/create')}>
                         <Plus />
                         新建应用
                       </Button>
                     </div>
-                    {appsLoading ? (
+                    {appsError ? (
+                      <Alert
+                        variant="error"
+                        title="应用列表加载失败"
+                        action={<Button onClick={refreshApps}>重试</Button>}
+                      />
+                    ) : appsLoading ? (
                       <div className="flex min-h-40 items-center justify-center">
                         <Spinner />
                       </div>

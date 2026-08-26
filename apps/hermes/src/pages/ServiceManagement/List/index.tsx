@@ -1,22 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import { useDebounce, useRequest } from 'ahooks'
-import { Button, Dialog, Empty, Input, Select, Skeleton, toast } from '@heliannuuthus/ui'
+import {
+  Alert,
+  Button,
+  Dialog,
+  Empty,
+  Input,
+  Select,
+  Skeleton,
+  Spinner,
+  toast,
+} from '@heliannuuthus/ui'
 import { LoaderCircle, Plus, Search, Server } from 'lucide-react'
 import { eq, prefix } from '@atlas/shared'
-import { FormField } from '@/components/forms/FormField'
 import { ResourceList } from '@/components/ResourceList'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { serviceApi } from '@/services'
 import styles from './index.module.scss'
-
-interface ServiceDraft {
-  service_id: string
-  name: string
-  description: string
-}
-
-const emptyDraft: ServiceDraft = { service_id: '', name: '', description: '' }
 
 function createdAtTimestamp(value?: string) {
   const timestamp = value ? Date.parse(value) : Number.NaN
@@ -25,31 +25,31 @@ function createdAtTimestamp(value?: string) {
 
 export function List() {
   const navigate = useAppNavigate()
-  const location = useLocation()
   const domainId = useDomainId()
   const [keyword, setKeyword] = useState('')
   const [searchBy, setSearchBy] = useState<'id' | 'name'>('name')
-  const shouldOpenCreate = (location.state as { openCreate?: boolean })?.openCreate ?? false
-  const [createDialogOpen, setCreateDialogOpen] = useState(shouldOpenCreate)
-  const [draft, setDraft] = useState<ServiceDraft>(emptyDraft)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    if (shouldOpenCreate) navigate(location.pathname, { replace: true, state: {} })
-  }, [shouldOpenCreate, location.pathname, navigate])
-
   const debouncedKeyword = useDebounce(keyword.trim(), { wait: 300 })
-  const { data, loading, refresh } = useRequest(
+  const filter = debouncedKeyword
+    ? searchBy === 'id'
+      ? { service_id: eq(debouncedKeyword) }
+      : { name: prefix(debouncedKeyword) }
+    : undefined
+  const { data, loading, error, refresh, mutate } = useRequest(
     () => {
-      const filter = debouncedKeyword
-        ? searchBy === 'id'
-          ? { service_id: eq(debouncedKeyword) }
-          : { name: prefix(debouncedKeyword) }
-        : undefined
-      return serviceApi.getList(domainId!, filter)
+      return serviceApi.getList(domainId!, filter, { size: 20 })
     },
     { ready: !!domainId, refreshDeps: [domainId, debouncedKeyword, searchBy] }
+  )
+  const { run: loadMore, loading: loadingMore } = useRequest(
+    async () => {
+      if (!domainId || !data?.next) return
+      const nextPage = await serviceApi.getList(domainId, filter, { token: data.next, size: 20 })
+      mutate({ items: [...data.items, ...nextPage.items], next: nextPage.next })
+    },
+    { manual: true, onError: () => toast.error('加载更多服务失败') }
   )
 
   const services = [...(data?.items ?? [])].sort(
@@ -57,30 +57,6 @@ export function List() {
       createdAtTimestamp(right.created_at) - createdAtTimestamp(left.created_at) ||
       left.service_id.localeCompare(right.service_id)
   )
-
-  const { runAsync: createService, loading: createLoading } = useRequest(
-    async (values: ServiceDraft) => {
-      await serviceApi.create(domainId!, values)
-      toast.success('服务已创建')
-      setCreateDialogOpen(false)
-      setDraft(emptyDraft)
-      refresh()
-    },
-    { manual: true, onError: () => toast.error('创建失败，请检查输入后重试') }
-  )
-
-  const handleCreate = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!draft.service_id.trim() || !draft.name.trim() || !draft.description.trim()) {
-      toast.error('请完整填写服务标识、名称和描述')
-      return
-    }
-    void createService({
-      service_id: draft.service_id.trim(),
-      name: draft.name.trim(),
-      description: draft.description.trim(),
-    })
-  }
 
   return (
     <section className={styles.container} aria-labelledby="services-title">
@@ -95,7 +71,9 @@ export function List() {
 
       <div className={styles.toolbar}>
         <div className={styles.listMeta} aria-live="polite">
-          <span>{loading ? '正在加载服务…' : `${services.length} 个服务`}</span>
+          <span>
+            {loading ? '正在加载服务…' : `${data?.next ? '已加载 ' : ''}${services.length} 个服务`}
+          </span>
           <span>{debouncedKeyword ? `匹配“${debouncedKeyword}”` : '按创建时间 · 最新优先'}</span>
         </div>
         <div className={styles.headerActions}>
@@ -122,33 +100,50 @@ export function List() {
               onChange={event => setKeyword(event.target.value)}
             />
           </div>
-          <Button type="button" onClick={() => setCreateDialogOpen(true)}>
+          <Button type="button" onClick={() => navigate('/services/create')}>
             <Plus aria-hidden="true" />
             新建服务
           </Button>
         </div>
       </div>
 
-      {loading ? (
+      {error ? (
+        <Alert
+          variant="error"
+          title="服务列表加载失败"
+          description="无法读取 Hermes 服务管理接口。"
+          action={<Button onClick={refresh}>重新加载</Button>}
+        />
+      ) : loading ? (
         <div className={styles.skeletonList} aria-label="正在加载服务">
           {Array.from({ length: 5 }, (_, index) => (
             <Skeleton key={index} className={styles.listSkeleton} />
           ))}
         </div>
       ) : services.length > 0 ? (
-        <ResourceList
-          resourceLabel="服务"
-          items={services.map(service => ({
-            id: service.service_id,
-            name: service.name || service.service_id,
-            description: service.description,
-            logoUrl: service.logo_url,
-            createdAt: service.created_at,
-            fallbackIcon: <Server />,
-          }))}
-          onView={item => navigate(`/services/${encodeURIComponent(item.id)}`)}
-          onDelete={item => setPendingDelete({ id: item.id, name: item.name })}
-        />
+        <>
+          <ResourceList
+            resourceLabel="服务"
+            items={services.map(service => ({
+              id: service.service_id,
+              name: service.name || service.service_id,
+              description: service.description,
+              logoUrl: service.logo_url,
+              createdAt: service.created_at,
+              fallbackIcon: <Server />,
+            }))}
+            onView={item => navigate(`/services/${encodeURIComponent(item.id)}`)}
+            onDelete={item => setPendingDelete({ id: item.id, name: item.name })}
+          />
+          {data?.next ? (
+            <div className="flex justify-center pt-3">
+              <Button variant="outline" disabled={loadingMore} onClick={loadMore}>
+                {loadingMore ? <Spinner /> : null}
+                加载更多服务
+              </Button>
+            </div>
+          ) : null}
+        </>
       ) : (
         <Empty
           title={debouncedKeyword ? '没有匹配的服务' : '尚未创建服务'}
@@ -156,7 +151,7 @@ export function List() {
             debouncedKeyword ? '尝试更换关键词或搜索字段。' : '创建第一个服务以开始配置访问关系。'
           }
           actions={
-            <Button type="button" onClick={() => setCreateDialogOpen(true)}>
+            <Button type="button" onClick={() => navigate('/services/create')}>
               <Plus aria-hidden="true" />
               新建服务
             </Button>
@@ -164,61 +159,6 @@ export function List() {
           className={styles.emptyState}
         />
       )}
-
-      <Dialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        title="新建服务"
-        description="服务标识创建后用于 API 路径和访问关系，请使用稳定名称。"
-      >
-        <form className={styles.dialogForm} onSubmit={handleCreate}>
-          <FormField label="服务标识" htmlFor="service-id" required>
-            <Input
-              id="service-id"
-              name="service_id"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="例如 billing-api…"
-              value={draft.service_id}
-              onChange={event =>
-                setDraft(current => ({ ...current, service_id: event.target.value }))
-              }
-            />
-          </FormField>
-          <FormField label="显示名称" htmlFor="service-name" required>
-            <Input
-              id="service-name"
-              name="name"
-              autoComplete="off"
-              placeholder="例如账单服务…"
-              value={draft.name}
-              onChange={event => setDraft(current => ({ ...current, name: event.target.value }))}
-            />
-          </FormField>
-          <FormField label="描述" htmlFor="service-description" required>
-            <Input.TextArea
-              id="service-description"
-              name="description"
-              placeholder="说明服务职责和访问边界…"
-              value={draft.description}
-              onChange={event =>
-                setDraft(current => ({ ...current, description: event.target.value }))
-              }
-            />
-          </FormField>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              取消
-            </Button>
-            <Button type="submit" disabled={createLoading}>
-              {createLoading ? (
-                <LoaderCircle className={styles.spinner} aria-hidden="true" />
-              ) : null}
-              创建服务
-            </Button>
-          </div>
-        </form>
-      </Dialog>
 
       <Dialog
         open={pendingDelete !== null}

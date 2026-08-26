@@ -16,11 +16,12 @@ import ReactFlow, {
   type EdgeTypes,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Button, Card, Dialog, Spinner, Table, toast } from '@heliannuuthus/ui'
+import { Alert, Button, Card, Dialog, Spinner, Table, toast } from '@heliannuuthus/ui'
 import { Trash2 } from 'lucide-react'
 import { serviceApi, applicationApi, groupApi, relationshipApi } from '@/services'
 import { useDomainId } from '@/contexts/DomainContext'
 import type { Relationship } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import { formatDateTime, isExpiringSoon } from '@atlas/shared'
 import { GraphContextProvider, useGraphContext } from './context/GraphContext'
 import { SubjectNode, type SubjectNodeData } from './nodes/SubjectNode'
@@ -83,27 +84,53 @@ function GraphCanvas() {
 
   const domainId = useDomainId()
 
-  const { data: services, loading: servicesLoading } = useRequest(
-    () => serviceApi.getList(domainId!),
+  const {
+    data: services,
+    loading: servicesLoading,
+    error: servicesError,
+    refresh: refreshServices,
+  } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
     { ready: !!domainId }
   )
 
-  const { data: applications, loading: applicationsLoading } = useRequest(
-    () => applicationApi.getList(domainId!),
+  const {
+    data: applications,
+    loading: applicationsLoading,
+    error: applicationsError,
+    refresh: refreshApplications,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        applicationApi.getList(domainId!, undefined, { token, size: 100 })
+      ),
     { ready: !!domainId }
   )
 
-  const { data: groups, loading: groupsLoading } = useRequest(() => groupApi.getList())
+  const {
+    data: groups,
+    loading: groupsLoading,
+    error: groupsError,
+    refresh: refreshGroups,
+  } = useRequest(() =>
+    collectCursorPages(token => groupApi.getList(undefined, { token, size: 100 }))
+  )
 
   const {
     data: relationships,
     loading: relationshipsLoading,
+    error: relationshipsError,
     refresh: refreshRelationships,
-  } = useRequest(() => relationshipApi.getList({ service_id: selectedServiceId }), {
-    refreshDeps: [selectedServiceId],
-  })
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        relationshipApi.getList({ service_id: selectedServiceId }, { token, size: 100 })
+      ),
+    { ready: Boolean(selectedServiceId), refreshDeps: [selectedServiceId] }
+  )
 
-  const relationshipItems = useMemo(() => relationships?.items ?? [], [relationships])
+  const relationshipItems = useMemo(() => relationships ?? [], [relationships])
 
   const users = useMemo(() => {
     if (!relationshipItems.length) return []
@@ -116,7 +143,11 @@ function GraphCanvas() {
 
   // 从关系数据构建节点和边
   useEffect(() => {
-    if (!relationshipItems.length) return
+    if (!relationshipItems.length) {
+      setNodes([])
+      setEdges([])
+      return
+    }
 
     const nodeMap = new Map<string, Node>()
     const newEdges: Edge[] = []
@@ -347,8 +378,10 @@ function GraphCanvas() {
         })
         toast.success('删除成功')
         refreshRelationships()
+        return true
       } catch {
         toast.error('删除失败')
+        return false
       }
     },
     [refreshRelationships]
@@ -423,11 +456,12 @@ function GraphCanvas() {
   ]
 
   const loading = servicesLoading || applicationsLoading || groupsLoading
+  const sourceError = servicesError || applicationsError || groupsError
 
   return (
     <div className={`${styles.graphPage} ${isFullscreen ? styles.fullscreen : ''}`}>
       <CanvasHeader
-        services={services?.items ?? []}
+        services={services ?? []}
         selectedServiceId={selectedServiceId}
         onServiceChange={setSelectedServiceId}
         onSave={handleSave}
@@ -443,15 +477,31 @@ function GraphCanvas() {
       <div className={styles.graphContainer}>
         {/* 左侧节点面板 */}
         <div className={styles.sidePanel}>
-          {loading ? (
+          {sourceError ? (
+            <Alert
+              variant="error"
+              title="图谱资源加载失败"
+              action={
+                <Button
+                  onClick={() => {
+                    refreshServices()
+                    refreshApplications()
+                    refreshGroups()
+                  }}
+                >
+                  重试
+                </Button>
+              }
+            />
+          ) : loading ? (
             <div className={styles.loading}>
               <Spinner />
             </div>
           ) : (
             <AddNodes
               users={users}
-              groups={groups?.items ?? []}
-              applications={applications?.items ?? []}
+              groups={(groups ?? []).filter(group => group.service_id === selectedServiceId)}
+              applications={applications ?? []}
               onDragStart={handleDragStart}
             />
           )}
@@ -483,7 +533,13 @@ function GraphCanvas() {
 
       {/* 下方数据表格 */}
       <Card className={styles.tableCard} header={{ title: '关系明细' }}>
-        {relationshipsLoading ? (
+        {relationshipsError ? (
+          <Alert
+            variant="error"
+            title="关系数据加载失败"
+            action={<Button onClick={refreshRelationships}>重试</Button>}
+          />
+        ) : relationshipsLoading ? (
           <div className="flex min-h-32 items-center justify-center">
             <Spinner />
           </div>
@@ -526,9 +582,9 @@ function GraphCanvas() {
               onClick={async () => {
                 if (!pendingDelete) return
                 setDeleting(true)
-                await handleDeleteRelation(pendingDelete)
+                const deleted = await handleDeleteRelation(pendingDelete)
                 setDeleting(false)
-                setPendingDelete(null)
+                if (deleted) setPendingDelete(null)
               }}
             >
               <Trash2 />

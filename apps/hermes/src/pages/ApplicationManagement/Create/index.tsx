@@ -29,6 +29,9 @@ const schema = z.object({
   allowed_origins: uriText(validateAllowedOriginsMultiLine),
   allowed_logout_uris: uriText(validateLogoutUrisMultiLine),
   need_key: z.boolean(),
+  id_token_expires_in: z.number().int().positive('必须大于 0'),
+  refresh_token_expires_in: z.number().int().positive('必须大于 0'),
+  refresh_token_absolute_expires_in: z.number().int().nonnegative('不能小于 0'),
 })
 type Values = z.infer<typeof schema>
 const lines = (value: string) =>
@@ -55,6 +58,9 @@ export function Create() {
       allowed_origins: '',
       allowed_logout_uris: '',
       need_key: false,
+      id_token_expires_in: 3600,
+      refresh_token_expires_in: 604_800,
+      refresh_token_absolute_expires_in: 0,
     },
   })
   const { run: submit, loading } = useRequest(
@@ -67,6 +73,9 @@ export function Create() {
         allowed_origins: lines(values.allowed_origins),
         allowed_logout_uris: lines(values.allowed_logout_uris),
         need_key: values.need_key,
+        id_token_expires_in: values.id_token_expires_in,
+        refresh_token_expires_in: values.refresh_token_expires_in,
+        refresh_token_absolute_expires_in: values.refresh_token_absolute_expires_in,
       })
       toast.success('创建成功')
       navigate('/applications')
@@ -142,6 +151,46 @@ export function Create() {
                 <Switch id="need-key" checked={field.value} onChange={field.onChange} />
               )}
             />
+          </FormField>
+          <FormField
+            label="ID Token 有效期（秒）"
+            htmlFor="id-token-expiry"
+            required
+            error={errors.id_token_expires_in?.message}
+          >
+            <Input
+              id="id-token-expiry"
+              type="number"
+              min={1}
+              {...register('id_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="Refresh Token 有效期（秒）"
+            htmlFor="refresh-token-expiry"
+            required
+            error={errors.refresh_token_expires_in?.message}
+          >
+            <Input
+              id="refresh-token-expiry"
+              type="number"
+              min={1}
+              {...register('refresh_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="Refresh Token 绝对有效期（秒）"
+            htmlFor="refresh-token-absolute-expiry"
+            required
+            error={errors.refresh_token_absolute_expires_in?.message}
+          >
+            <Input
+              id="refresh-token-absolute-expiry"
+              type="number"
+              min={0}
+              {...register('refresh_token_absolute_expires_in', { valueAsNumber: true })}
+            />
+            <span className="text-xs text-muted-foreground">0 表示不设绝对存活上限。</span>
           </FormField>
           <FormActions
             submitting={loading}

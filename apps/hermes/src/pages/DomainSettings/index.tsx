@@ -89,17 +89,20 @@ export function DomainSettings() {
     if (!configDraft?.idp_type.trim() || !configDraft.t_app_id.trim()) return
     setSavingConfig(true)
     try {
-      const body = {
-        priority: Number(configDraft.priority) || 0,
-        strategy: configDraft.strategy.trim() || undefined,
-        t_app_id: configDraft.t_app_id.trim(),
-      }
-      if (editingConfig) await domainApi.updateIDPConfig(domainId, editingConfig.idp_type, body)
-      else
+      if (editingConfig) {
+        await domainApi.updateIDPConfig(domainId, editingConfig.idp_type, {
+          priority: Number(configDraft.priority) || 0,
+          strategy: configDraft.strategy.trim() || null,
+          t_app_id: configDraft.t_app_id.trim(),
+        })
+      } else {
         await domainApi.createIDPConfig(domainId, {
           idp_type: configDraft.idp_type.trim(),
-          ...body,
+          priority: Number(configDraft.priority) || 0,
+          strategy: configDraft.strategy.trim() || undefined,
+          t_app_id: configDraft.t_app_id.trim(),
         })
+      }
       toast.success(editingConfig ? '身份源配置已更新' : '身份源已添加')
       setConfigDraft(null)
       setEditingConfig(null)

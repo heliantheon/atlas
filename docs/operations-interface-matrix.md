@@ -21,7 +21,7 @@ legacy mocks.
 | Relationships                  | `GET/POST/PATCH/DELETE /api/relationships`                                                                       | Relationship list, editor, graph                        | Update missing                                             |
 | Scoped relationships           | `GET/POST .../applications/:app_id/services/:service_id/relationships`, `PATCH/DELETE .../:relationship_id`      | Application-service relationship workbench              | Backend response omits required relationship ID            |
 | Groups                         | `GET/POST /api/groups`, `GET/PATCH/DELETE /api/groups/:group_id`                                                 | Group workbench                                         | Delete missing; create request omits required `service_id` |
-| Group members                  | `GET/POST /api/groups/:group_id/members`                                                                         | Membership editor                                       | Present                                                    |
+| Group members                  | `GET/POST /api/groups/:group_id/members`                                                                         | Membership editor                                       | Read-only; full-set mutation not wired                     |
 
 Hermes list endpoints use cursor pagination and return `{ items, next? }`.
 Domain and IDP configuration lists return arrays. Mutations use JSON Merge Patch
@@ -49,6 +49,28 @@ used by the generic endpoints.
 Chaos has no file-list or object-delete management endpoint. Atlas therefore
 shows the current upload queue and returned object URLs only; it must not imply
 that it can browse or delete the whole bucket.
+
+The deployed Chaos template handlers currently serialize the Go persistence
+model directly, yielding PascalCase response fields. Atlas normalizes that wire
+format in the Chaos service module and also accepts the intended snake_case
+contract, so page components consume one stable `EmailTemplate` model without
+depending on database field names.
+
+## Rewrite completion
+
+- Hermes service, application, group and relationship collections follow every
+  opaque cursor until completion where a full dataset is required; interactive
+  lists expose explicit load-more controls and server-side filters.
+- Full service and application creation pages are the only creation paths, so
+  secret generation, redirect/origin policy, logo and token expiry fields are
+  not discarded by simplified dialogs.
+- Group membership mutation, challenge policy, domain/application IDP policy,
+  IDP credentials, relationship update/delete and explicit client-secret reveal
+  are wired to their authoritative endpoints.
+- Merge Patch editors send `null` when an existing nullable override is cleared,
+  while create requests omit optional empty values.
+- Chaos template CRUD/render/send, bounded historical/live log queries and
+  presigned direct uploads match the handler request and response contracts.
 
 ## UI behavior required by the contract
 

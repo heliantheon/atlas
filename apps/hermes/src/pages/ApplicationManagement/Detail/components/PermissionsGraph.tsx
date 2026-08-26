@@ -35,6 +35,7 @@ import { FormField } from '@/components/forms/FormField'
 import { useDomainId } from '@/contexts/DomainContext'
 import { serviceApi } from '@/services'
 import type { ApplicationServiceRelation, Service } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './PermissionsGraph.module.scss'
 
 interface AppNodeData {
@@ -325,12 +326,14 @@ function PermissionsGraphInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const isDirty = Boolean(pendingAdds.length || pendingDeletes.length)
 
-  const { data: serviceResponse } = useRequest(() => serviceApi.getList(domainId!), {
-    ready: Boolean(domainId && !suppliedServices),
-  })
+  const { data: serviceResponse } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+    { ready: Boolean(domainId && !suppliedServices) }
+  )
   const services = useMemo(
-    () => suppliedServices ?? serviceResponse?.items ?? [],
-    [serviceResponse?.items, suppliedServices]
+    () => suppliedServices ?? serviceResponse ?? [],
+    [serviceResponse, suppliedServices]
   )
   const serviceMap = useMemo(
     () => new Map(services.map(service => [service.service_id, service])),

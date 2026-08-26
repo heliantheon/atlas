@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
 import { Network, Table2 } from 'lucide-react'
-import { Button, Empty, Spinner, Table, Tag } from '@heliannuuthus/ui'
+import { Alert, Button, Empty, Spinner, Table, Tag } from '@heliannuuthus/ui'
 import type { ApplicationServiceRelation } from '@/types'
 import styles from '../index.module.scss'
 
@@ -10,6 +10,8 @@ export interface ServicePermissionsViewProps {
   appLogoUrl?: string
   data: ApplicationServiceRelation[]
   loading?: boolean
+  error?: Error
+  onRetry?: () => void
   onNavigateToService?: (serviceId: string) => void
   onRelationsChange?: () => void
 }
@@ -23,6 +25,8 @@ export const ServicePermissionsView = memo(function ServicePermissionsView({
   appLogoUrl,
   data,
   loading,
+  error,
+  onRetry,
   onNavigateToService,
   onRelationsChange,
 }: ServicePermissionsViewProps) {
@@ -83,7 +87,13 @@ export const ServicePermissionsView = memo(function ServicePermissionsView({
           </Button>
         </div>
       </div>
-      {view === 'table' ? (
+      {error ? (
+        <Alert
+          variant="error"
+          title="服务授权加载失败"
+          action={onRetry ? <Button onClick={onRetry}>重试</Button> : undefined}
+        />
+      ) : view === 'table' ? (
         loading ? (
           <div className="flex min-h-40 items-center justify-center">
             <Spinner />

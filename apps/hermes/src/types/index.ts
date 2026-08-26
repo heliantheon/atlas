@@ -100,7 +100,7 @@ export interface DomainIDPConfigCreateRequest {
 
 export interface DomainIDPConfigUpdateRequest {
   priority?: number
-  strategy?: string
+  strategy?: string | null
   t_app_id?: string
 }
 
@@ -166,8 +166,8 @@ export interface ServiceCreateRequest {
 
 export interface ServiceUpdateRequest {
   name?: string
-  description?: string
-  logo_url?: string
+  description?: string | null
+  logo_url?: string | null
   access_token_expires_in?: number
 }
 
@@ -180,11 +180,15 @@ export interface ApplicationCreateRequest {
   allowed_origins?: string[]
   allowed_logout_uris?: string[]
   need_key?: boolean
+  id_token_expires_in?: number
+  refresh_token_expires_in?: number
+  refresh_token_absolute_expires_in?: number
 }
 
 export interface ApplicationUpdateRequest {
   name?: string
-  description?: string
+  description?: string | null
+  logo_url?: string | null
   allowed_redirect_uris?: string[]
   allowed_origins?: string[]
   allowed_logout_uris?: string[]
@@ -202,8 +206,8 @@ export interface ApplicationIDPConfigCreateRequest {
 
 export interface ApplicationIDPConfigUpdateRequest {
   priority?: number
-  strategy?: string
-  t_app_id?: string
+  strategy?: string | null
+  t_app_id?: string | null
 }
 
 export interface ApplicationServiceRelationRequest {
@@ -251,7 +255,7 @@ export interface GroupCreateRequest {
 
 export interface GroupUpdateRequest {
   name?: string
-  description?: string
+  description?: string | null
 }
 
 export interface GroupMemberRequest {

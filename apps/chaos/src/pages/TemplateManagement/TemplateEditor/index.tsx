@@ -74,9 +74,14 @@ export function TemplateEditor({
     if (mode === 'create' && !/^[a-z0-9_-]+$/.test(draft.template_id)) {
       next.template_id = '使用小写字母、数字、下划线或短横线。'
     }
+    if (draft.template_id.length > 64) next.template_id = '模板 ID 不超过 64 个字符。'
     if (!draft.name.trim()) next.name = '填写模板名称。'
+    if (draft.name.trim().length > 128) next.name = '模板名称不超过 128 个字符。'
+    if (draft.description.trim().length > 512) next.description = '描述不超过 512 个字符。'
     if (!draft.subject.trim()) next.subject = '填写邮件主题。'
+    if (draft.subject.length > 256) next.subject = '邮件主题不超过 256 个字符。'
     if (!draft.content.trim()) next.content = '填写 HTML 邮件内容。'
+    if (draft.service_id.trim().length > 32) next.service_id = '服务 ID 不超过 32 个字符。'
     if (draft.variables.trim()) {
       try {
         const parsed = JSON.parse(draft.variables)
@@ -160,6 +165,7 @@ export function TemplateEditor({
                 value={draft.template_id}
                 onChange={event => set('template_id', event.target.value)}
                 placeholder="otp_login"
+                maxLength={64}
                 disabled={mode === 'edit'}
                 aria-invalid={Boolean(errors.template_id)}
               />
@@ -173,6 +179,7 @@ export function TemplateEditor({
                 value={draft.name}
                 onChange={event => set('name', event.target.value)}
                 placeholder="登录验证码"
+                maxLength={128}
                 aria-invalid={Boolean(errors.name)}
               />
               {errors.name ? <small className={styles.fieldError}>{errors.name}</small> : null}
@@ -185,7 +192,12 @@ export function TemplateEditor({
               onChange={event => set('description', event.target.value)}
               rows={2}
               placeholder="说明使用场景和调用方。"
+              maxLength={512}
+              aria-invalid={Boolean(errors.description)}
             />
+            {errors.description ? (
+              <small className={styles.fieldError}>{errors.description}</small>
+            ) : null}
           </label>
           {mode === 'create' ? (
             <label>
@@ -194,7 +206,12 @@ export function TemplateEditor({
                 value={draft.service_id}
                 onChange={event => set('service_id', event.target.value)}
                 placeholder="aegis"
+                maxLength={32}
+                aria-invalid={Boolean(errors.service_id)}
               />
+              {errors.service_id ? (
+                <small className={styles.fieldError}>{errors.service_id}</small>
+              ) : null}
             </label>
           ) : (
             <div className={styles.switchRow}>
@@ -216,6 +233,7 @@ export function TemplateEditor({
               value={draft.subject}
               onChange={event => set('subject', event.target.value)}
               placeholder="您的验证码是 {{.Code}}"
+              maxLength={256}
               aria-invalid={Boolean(errors.subject)}
             />
             <small className={errors.subject ? styles.fieldError : undefined}>

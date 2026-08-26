@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { useRequest } from 'ahooks'
 import { Boxes, GitBranch, Info, Plus, Share2, ShieldCheck } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Button, Card, Empty, Spinner, Table, Tabs, Tag, toast } from '@heliannuuthus/ui'
+import { Alert, Button, Card, Empty, Spinner, Table, Tabs, Tag } from '@heliannuuthus/ui'
 import {
   PageHeader,
   formatDateTime,
@@ -13,6 +13,7 @@ import {
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { relationshipApi, serviceApi } from '@/services'
 import type { Relationship, ServiceApplicationRelation } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 import { ChallengeSettingsPanel } from './components/ChallengeSettingsPanel'
 
@@ -22,20 +23,32 @@ export function Detail() {
   const { serviceId } = useParams<{ serviceId: string }>()
   const domainId = useDomainId()
   const navigate = useAppNavigate()
-  const { data, loading } = useRequest(() => serviceApi.getDetail(domainId!, serviceId!), {
-    ready: Boolean(domainId && serviceId),
-    onError: () => toast.error('获取服务信息失败'),
-  })
-  const { data: appRelations, loading: appLoading } = useRequest(
-    () => serviceApi.getApplicationRelations(domainId!, serviceId!),
+  const { data, loading, error, refresh } = useRequest(
+    () => serviceApi.getDetail(domainId!, serviceId!),
     { ready: Boolean(domainId && serviceId) }
   )
-  const { data: relationships, loading: relationsLoading } = useRequest(
-    () => relationshipApi.getList({ service_id: serviceId }),
+  const {
+    data: appRelations,
+    loading: appLoading,
+    error: appError,
+    refresh: refreshApps,
+  } = useRequest(() => serviceApi.getApplicationRelations(domainId!, serviceId!), {
+    ready: Boolean(domainId && serviceId),
+  })
+  const {
+    data: relationships,
+    loading: relationsLoading,
+    error: relationsError,
+    refresh: refreshRelations,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        relationshipApi.getList({ service_id: serviceId }, { token, size: 100 })
+      ),
     { ready: Boolean(serviceId) }
   )
   const applicationRows = appRelations ?? []
-  const relationRows = relationships?.items ?? []
+  const relationRows = relationships ?? []
   const appColumns: Table.Column<ServiceApplicationRelation>[] = [
     {
       key: 'app_id',
@@ -117,7 +130,14 @@ export function Detail() {
         <Spinner className="size-7" />
       </div>
     )
-  if (!data) return null
+  if (error || !data)
+    return (
+      <Empty
+        title="无法读取服务"
+        description="该服务不存在，或 Hermes 管理接口暂时不可用。"
+        actions={<Button onClick={refresh}>重试</Button>}
+      />
+    )
   const detailItems: Array<{ label: string; value: ReactNode; wide?: boolean }> = [
     { label: '服务 ID', value: <code>{data.service_id}</code> },
     { label: '名称', value: data.name },
@@ -186,7 +206,13 @@ export function Detail() {
                         本服务已授权给以下应用，具体权限在应用详情中配置。
                       </span>
                     </div>
-                    {appLoading ? (
+                    {appError ? (
+                      <Alert
+                        variant="error"
+                        title="已授权应用加载失败"
+                        action={<Button onClick={refreshApps}>重试</Button>}
+                      />
+                    ) : appLoading ? (
                       <div className={styles.loading}>
                         <Spinner />
                       </div>
@@ -234,7 +260,13 @@ export function Detail() {
                         </Button>
                       </div>
                     </div>
-                    {relationsLoading ? (
+                    {relationsError ? (
+                      <Alert
+                        variant="error"
+                        title="关联关系加载失败"
+                        action={<Button onClick={refreshRelations}>重试</Button>}
+                      />
+                    ) : relationsLoading ? (
                       <div className={styles.loading}>
                         <Spinner />
                       </div>

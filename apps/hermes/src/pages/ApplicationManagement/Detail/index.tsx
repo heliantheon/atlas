@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import { z } from 'zod'
 import {
+  Alert,
   Button,
   Card,
   Dialog,
@@ -88,6 +89,7 @@ const settingsSchema = z
   .object({
     name: z.string().trim().min(1, '请输入应用名称').max(32, '名称不超过 32 个字符'),
     description: z.string(),
+    logo_url: z.string().trim().url('请输入完整的 Logo URL').or(z.literal('')),
     allowed_redirect_uris: z.array(z.string()),
     allowed_origins: z.array(z.string()),
     allowed_logout_uris: z.array(z.string()),
@@ -133,12 +135,13 @@ function settingsFromApplication(data: Application): SettingsValues {
   return {
     name: data.name,
     description: data.description ?? '',
+    logo_url: data.logo_url ?? '',
     allowed_redirect_uris: parseUriArray(data.allowed_redirect_uris),
     allowed_origins: parseUriArray(data.allowed_origins),
     allowed_logout_uris: parseUriArray(data.allowed_logout_uris),
-    id_token_expires_in: data.id_token_expires_in || undefined,
-    refresh_token_expires_in: data.refresh_token_expires_in || undefined,
-    refresh_token_absolute_expires_in: data.refresh_token_absolute_expires_in || undefined,
+    id_token_expires_in: data.id_token_expires_in ?? undefined,
+    refresh_token_expires_in: data.refresh_token_expires_in ?? undefined,
+    refresh_token_absolute_expires_in: data.refresh_token_absolute_expires_in ?? undefined,
   }
 }
 
@@ -359,6 +362,7 @@ export function Detail() {
     defaultValues: {
       name: '',
       description: '',
+      logo_url: '',
       allowed_redirect_uris: [],
       allowed_origins: [],
       allowed_logout_uris: [],
@@ -369,13 +373,14 @@ export function Detail() {
     defaultValues: { type: '', priority: 0, strategy: '', t_app_id: '' },
   })
 
-  const { data, loading, refresh } = useRequest(() => applicationApi.getDetail(domainId!, appId!), {
-    ready: Boolean(domainId && appId),
-    onError: () => toast.error('获取应用信息失败'),
-  })
+  const { data, loading, error, refresh } = useRequest(
+    () => applicationApi.getDetail(domainId!, appId!),
+    { ready: Boolean(domainId && appId) }
+  )
   const {
     data: serviceRelations,
     loading: relationsLoading,
+    error: relationsError,
     refresh: refreshRelations,
   } = useRequest(() => applicationApi.getServiceRelations(domainId!, appId!), {
     ready: Boolean(domainId && appId && activeTab === 'relations'),
@@ -383,6 +388,7 @@ export function Detail() {
   const {
     data: idpConfigs,
     loading: idpLoading,
+    error: idpError,
     refresh: refreshIdpConfigs,
   } = useRequest(() => applicationApi.getIDPConfigs(domainId!, appId!), {
     ready: Boolean(domainId && appId && activeTab === 'auth'),
@@ -411,7 +417,8 @@ export function Detail() {
     try {
       await applicationApi.update(domainId!, appId!, {
         ...values,
-        description: values.description.trim() || undefined,
+        description: values.description.trim() || null,
+        logo_url: values.logo_url.trim() || null,
         allowed_redirect_uris: values.allowed_redirect_uris
           .map(item => item.trim())
           .filter(Boolean),
@@ -444,16 +451,21 @@ export function Detail() {
   }
   const saveIdp = idpForm.handleSubmit(async values => {
     setSavingIdp(true)
-    const payload = {
-      priority: values.priority,
-      strategy: values.strategy.trim() || undefined,
-      t_app_id: values.t_app_id.trim() || undefined,
-    }
     try {
-      if (editingIdp)
-        await applicationApi.updateIDPConfig(domainId!, appId!, editingIdp.type, payload)
-      else
-        await applicationApi.createIDPConfig(domainId!, appId!, { type: values.type, ...payload })
+      if (editingIdp) {
+        await applicationApi.updateIDPConfig(domainId!, appId!, editingIdp.type, {
+          priority: values.priority,
+          strategy: values.strategy.trim() || null,
+          t_app_id: values.t_app_id.trim() || null,
+        })
+      } else {
+        await applicationApi.createIDPConfig(domainId!, appId!, {
+          type: values.type,
+          priority: values.priority,
+          strategy: values.strategy.trim() || undefined,
+          t_app_id: values.t_app_id.trim() || undefined,
+        })
+      }
       await refreshIdpConfigs()
       setIdpOpen(false)
       toast.success(editingIdp ? '身份源已更新' : '身份源已添加')
@@ -529,14 +541,20 @@ export function Detail() {
         <Spinner className="size-7" />
       </div>
     )
-  if (!data)
+  if (error || !data)
     return (
       <Empty
-        title="应用不存在"
+        title="无法读取应用"
+        description="该应用不存在，或 Hermes 管理接口暂时不可用。"
         actions={
-          <Button type="button" onClick={() => navigate('/applications')}>
-            返回应用列表
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" onClick={refresh}>
+              重试
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate('/applications')}>
+              返回列表
+            </Button>
+          </div>
         }
       />
     )
@@ -572,7 +590,7 @@ export function Detail() {
     {
       name: 'refresh_token_absolute_expires_in',
       label: 'Refresh Token 绝对有效期',
-      description: '刷新令牌最长存活时间。',
+      description: '刷新令牌最长存活时间；0 表示不设绝对上限。',
     },
   ] as const
 
@@ -656,6 +674,19 @@ export function Detail() {
                       id="application-description"
                       rows={4}
                       {...settingsForm.register('description')}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Logo URL"
+                    htmlFor="application-logo"
+                    error={settingsForm.formState.errors.logo_url?.message}
+                    description="用于应用目录、详情页和权限图谱中的品牌标识。留空可清除。"
+                  >
+                    <Input
+                      id="application-logo"
+                      type="url"
+                      placeholder="https://example.com/logo.svg"
+                      {...settingsForm.register('logo_url')}
                     />
                   </FormField>
                 </div>
@@ -742,7 +773,13 @@ export function Detail() {
               label: '认证方式',
               content: (
                 <div className={`${styles.tabContent} py-5`}>
-                  {idpLoading || sortingIdp ? (
+                  {idpError ? (
+                    <Alert
+                      variant="error"
+                      title="应用身份源加载失败"
+                      action={<Button onClick={refreshIdpConfigs}>重试</Button>}
+                    />
+                  ) : idpLoading || sortingIdp ? (
                     <div className="flex min-h-40 items-center justify-center">
                       <Spinner />
                     </div>
@@ -796,6 +833,8 @@ export function Detail() {
                   appLogoUrl={data.logo_url}
                   data={serviceRelations ?? []}
                   loading={relationsLoading}
+                  error={relationsError}
+                  onRetry={refreshRelations}
                   onNavigateToService={id => navigate(`/services/${id}`)}
                   onRelationsChange={refreshRelations}
                 />

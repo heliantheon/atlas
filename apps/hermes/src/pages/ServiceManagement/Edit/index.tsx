@@ -14,6 +14,7 @@ import styles from './index.module.scss'
 const schema = z.object({
   name: z.string().trim().min(1, '请输入名称'),
   description: z.string().trim().optional(),
+  logo_url: z.string().trim().url('请输入完整的 Logo URL').or(z.literal('')),
   access_token_expires_in: z.number().int().positive('必须大于 0'),
 })
 type Values = z.infer<typeof schema>
@@ -32,6 +33,7 @@ export function Edit() {
     defaultValues: {
       name: '',
       description: '',
+      logo_url: '',
       access_token_expires_in: 7200,
     },
   })
@@ -41,13 +43,18 @@ export function Edit() {
       reset({
         name: data.name,
         description: data.description ?? '',
+        logo_url: data.logo_url ?? '',
         access_token_expires_in: data.access_token_expires_in,
       }),
     onError: () => toast.error('获取服务信息失败'),
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
-      await serviceApi.update(domainId!, serviceId!, values)
+      await serviceApi.update(domainId!, serviceId!, {
+        ...values,
+        description: values.description?.trim() || null,
+        logo_url: values.logo_url.trim() || null,
+      })
       toast.success('更新成功')
       navigate(`/services/${serviceId}`)
     },
@@ -70,6 +77,14 @@ export function Edit() {
           </FormField>
           <FormField label="描述" htmlFor="service-description" error={errors.description?.message}>
             <Input.TextArea id="service-description" rows={4} {...register('description')} />
+          </FormField>
+          <FormField label="Logo URL" htmlFor="service-logo" error={errors.logo_url?.message}>
+            <Input
+              id="service-logo"
+              type="url"
+              placeholder="https://example.com/logo.svg"
+              {...register('logo_url')}
+            />
           </FormField>
           <FormField
             label="Access Token 过期时间（秒）"

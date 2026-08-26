@@ -14,6 +14,7 @@ const schema = z.object({
   service_id: z.string().trim().min(1, '请输入服务 ID'),
   name: z.string().trim().min(1, '请输入名称'),
   description: z.string().trim().min(1, '请输入描述'),
+  logo_url: z.string().trim().url('请输入完整的 Logo URL').or(z.literal('')),
   access_token_expires_in: z.number().int().positive('必须大于 0'),
 })
 type Values = z.infer<typeof schema>
@@ -31,12 +32,13 @@ export function Create() {
       service_id: '',
       name: '',
       description: '',
+      logo_url: '',
       access_token_expires_in: 7200,
     },
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
-      await serviceApi.create(domainId!, values)
+      await serviceApi.create(domainId!, { ...values, logo_url: values.logo_url || undefined })
       toast.success('创建成功')
       navigate('/services')
     },
@@ -78,6 +80,14 @@ export function Create() {
               type="number"
               min={1}
               {...register('access_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField label="Logo URL" htmlFor="service-logo" error={errors.logo_url?.message}>
+            <Input
+              id="service-logo"
+              type="url"
+              placeholder="https://example.com/logo.svg"
+              {...register('logo_url')}
             />
           </FormField>
           <FormActions

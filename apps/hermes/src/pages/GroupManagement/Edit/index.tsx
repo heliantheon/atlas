@@ -36,7 +36,10 @@ export function Edit() {
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
-      await groupApi.update(groupId!, values)
+      await groupApi.update(groupId!, {
+        name: values.name,
+        description: values.description?.trim() || null,
+      })
       toast.success('更新成功')
       navigate(`/groups/${groupId}`)
     },
