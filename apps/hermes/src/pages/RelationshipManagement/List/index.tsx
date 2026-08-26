@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useRequest } from 'ahooks'
-import { GitBranch, LoaderCircle, Plus, Share2, Trash2 } from 'lucide-react'
+import { GitBranch, LoaderCircle, Pencil, Plus, Share2, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Badge } from '@atlas/ui/badge'
 import { Button } from '@atlas/ui/button'
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@atlas/ui/dialog'
 import { EmptyState } from '@atlas/ui/empty-state'
+import { Input } from '@atlas/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
 import { Spinner } from '@atlas/ui/spinner'
 import { DataTable, type DataTableColumn } from '@atlas/ui/table'
@@ -26,12 +27,24 @@ import styles from './index.module.scss'
 
 const subjectTypeLabels: Record<string, string> = { user: '用户', group: '组', application: '应用' }
 
+function toDateTimeLocal(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
 export function List() {
   const { serviceId: urlServiceId } = useParams<{ serviceId: string }>()
   const navigate = useAppNavigate()
   const [subjectType, setSubjectType] = useState<string>('all')
   const [pendingDelete, setPendingDelete] = useState<Relationship | null>(null)
+  const [pendingEdit, setPendingEdit] = useState<Relationship | null>(null)
+  const [editRelation, setEditRelation] = useState('')
+  const [editExpiresAt, setEditExpiresAt] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const { data, loading, refresh } = useRequest(
     () =>
       relationshipApi.getList({
@@ -62,6 +75,34 @@ export function List() {
       setDeleting(false)
     }
   }, [pendingDelete, refresh])
+  const openEdit = useCallback((relationship: Relationship) => {
+    setPendingEdit(relationship)
+    setEditRelation(relationship.relation)
+    setEditExpiresAt(toDateTimeLocal(relationship.expires_at))
+  }, [])
+  const updateRelationship = useCallback(async () => {
+    if (!pendingEdit || !editRelation.trim()) return
+    setUpdating(true)
+    try {
+      await relationshipApi.update({
+        service_id: pendingEdit.service_id,
+        subject_type: pendingEdit.subject_type,
+        subject_id: pendingEdit.subject_id,
+        relation: pendingEdit.relation,
+        object_type: pendingEdit.object_type,
+        object_id: pendingEdit.object_id,
+        new_relation: editRelation.trim(),
+        expires_at: editExpiresAt ? new Date(editExpiresAt).toISOString() : null,
+      })
+      toast.success('关系已更新')
+      setPendingEdit(null)
+      refresh()
+    } catch {
+      toast.error('更新失败')
+    } finally {
+      setUpdating(false)
+    }
+  }, [editExpiresAt, editRelation, pendingEdit, refresh])
   const columns = useMemo<DataTableColumn<Relationship>[]>(() => {
     const result: DataTableColumn<Relationship>[] = [
       {
@@ -114,17 +155,23 @@ export function List() {
       {
         key: 'action',
         header: '操作',
-        width: 90,
+        width: 170,
         render: relation => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive"
-            onClick={() => setPendingDelete(relation)}
-          >
-            <Trash2 />
-            删除
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={() => openEdit(relation)}>
+              <Pencil />
+              编辑
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive"
+              onClick={() => setPendingDelete(relation)}
+            >
+              <Trash2 />
+              删除
+            </Button>
+          </div>
         ),
       },
     ]
@@ -136,7 +183,7 @@ export function List() {
         render: relation => <Badge variant="outline">{relation.service_id}</Badge>,
       })
     return result
-  }, [urlServiceId])
+  }, [openEdit, urlServiceId])
   const createPath = urlServiceId
     ? `/services/${urlServiceId}/relationships/create`
     : '/relationships/create'
@@ -222,6 +269,53 @@ export function List() {
                 onClick={() => void deleteRelationship()}
               >
                 {deleting ? <LoaderCircle className="animate-spin" /> : null}删除
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog
+          open={pendingEdit !== null}
+          onOpenChange={open => {
+            if (!open && !updating) setPendingEdit(null)
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>编辑授权关系</DialogTitle>
+              <DialogDescription>主体和对象保持不变；可调整关系类型与过期时间。</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-name">
+                关系类型
+                <Input
+                  id="relationship-name"
+                  value={editRelation}
+                  onChange={event => setEditRelation(event.target.value)}
+                  placeholder="例如 viewer"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium" htmlFor="relationship-expires-at">
+                过期时间
+                <Input
+                  id="relationship-expires-at"
+                  type="datetime-local"
+                  value={editExpiresAt}
+                  onChange={event => setEditExpiresAt(event.target.value)}
+                />
+                <span className="text-xs font-normal text-muted-foreground">
+                  留空表示永久有效，并会清除已有过期时间。
+                </span>
+              </label>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" disabled={updating} onClick={() => setPendingEdit(null)}>
+                取消
+              </Button>
+              <Button
+                disabled={updating || !editRelation.trim()}
+                onClick={() => void updateRelationship()}
+              >
+                {updating ? <LoaderCircle className="animate-spin" /> : null}保存
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -17,10 +17,12 @@
     "./sidebar": "./src/MainLayout/Sidebar/index.tsx",
     "./top-nav-layout": "./src/TopNavLayout/index.tsx",
     "./breadcrumb": "./src/Breadcrumb/index.tsx",
-    "./brand-colors": "./src/BrandColors/index.ts"
+    "./brand-colors": "./src/BrandColors/index.ts",
+    "./operations-shell": "./src/OperationsShell/index.tsx"
   },
   "dependencies": {
     "@atlas/shared": "workspace:*",
+    "@heliannuuthus/ui": "https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz",
     "@fontsource-variable/raleway": "^5.3.0",
     "@radix-ui/react-avatar": "^1.2.2",
     "@radix-ui/react-dialog": "^1.1.19",

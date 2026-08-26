@@ -58,7 +58,7 @@ import { formatDateTime } from '@atlas/shared'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi } from '@/services'
-import type { Application, ApplicationIDPConfig } from '@/types'
+import type { Application, ApplicationIDPConfig, ApplicationSecret } from '@/types'
 import {
   validateAllowedOriginsArray,
   validateLogoutUrisArray,
@@ -116,8 +116,7 @@ const idpSchema = z.object({
   type: z.string().min(1, '请选择身份源类型'),
   priority: z.number().int().min(0, '优先级不能小于 0'),
   strategy: z.string(),
-  delegate: z.string(),
-  require: z.string(),
+  t_app_id: z.string(),
 })
 
 type SettingsValues = z.infer<typeof settingsSchema>
@@ -368,6 +367,8 @@ export function Detail() {
   const [saving, setSaving] = useState(false)
   const [savingIdp, setSavingIdp] = useState(false)
   const [sortingIdp, setSortingIdp] = useState(false)
+  const [loadingClientSecret, setLoadingClientSecret] = useState(false)
+  const [clientSecret, setClientSecret] = useState<ApplicationSecret | null>(null)
 
   const settingsForm = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
@@ -381,7 +382,7 @@ export function Detail() {
   })
   const idpForm = useForm<IdpValues>({
     resolver: zodResolver(idpSchema),
-    defaultValues: { type: '', priority: 0, strategy: '', delegate: '', require: '' },
+    defaultValues: { type: '', priority: 0, strategy: '', t_app_id: '' },
   })
 
   const { data, loading, refresh } = useRequest(() => applicationApi.getDetail(domainId!, appId!), {
@@ -402,7 +403,7 @@ export function Detail() {
   } = useRequest(() => applicationApi.getIDPConfigs(domainId!, appId!), {
     ready: Boolean(domainId && appId && activeTab === 'auth'),
   })
-  const { data: domainIdps } = useRequest(() => domainApi.getIDPs(domainId!), {
+  const { data: domainIdps } = useRequest(() => domainApi.getIDPConfigs(domainId!), {
     ready: Boolean(domainId && idpOpen),
   })
 
@@ -444,7 +445,7 @@ export function Detail() {
 
   const openCreateIdp = () => {
     setEditingIdp(null)
-    idpForm.reset({ type: '', priority: 0, strategy: '', delegate: '', require: '' })
+    idpForm.reset({ type: '', priority: 0, strategy: '', t_app_id: '' })
     setIdpOpen(true)
   }
   const openEditIdp = (idp: ApplicationIDPConfig) => {
@@ -453,8 +454,7 @@ export function Detail() {
       type: idp.type,
       priority: idp.priority,
       strategy: idp.strategy ?? '',
-      delegate: idp.delegate ?? '',
-      require: idp.require ?? '',
+      t_app_id: idp.t_app_id ?? '',
     })
     setIdpOpen(true)
   }
@@ -463,8 +463,7 @@ export function Detail() {
     const payload = {
       priority: values.priority,
       strategy: values.strategy.trim() || undefined,
-      delegate: values.delegate.trim() || undefined,
-      require: values.require.trim() || undefined,
+      t_app_id: values.t_app_id.trim() || undefined,
     }
     try {
       if (editingIdp)
@@ -480,6 +479,26 @@ export function Detail() {
       setSavingIdp(false)
     }
   })
+
+  const revealClientSecret = async () => {
+    setLoadingClientSecret(true)
+    try {
+      setClientSecret(await applicationApi.getSecret(domainId!, appId!))
+    } catch {
+      toast.error('无法获取客户端凭据，请确认应用创建时启用了密钥')
+    } finally {
+      setLoadingClientSecret(false)
+    }
+  }
+
+  const copyCredential = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(`${label}已复制`)
+    } catch {
+      toast.error(`复制${label}失败`)
+    }
+  }
 
   const deleteIdp = async () => {
     if (!pendingDelete) return
@@ -656,6 +675,24 @@ export function Detail() {
             </TabsContent>
             <TabsContent value="config">
               <div className={`${styles.tabContent} grid gap-6 py-5`}>
+                <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="grid gap-1">
+                    <h2 className="text-sm font-medium">OAuth 客户端凭据</h2>
+                    <p className="text-sm text-muted-foreground">
+                      按需读取派生的 client secret。关闭弹窗后页面不会保留明文。
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loadingClientSecret}
+                    onClick={() => void revealClientSecret()}
+                  >
+                    {loadingClientSecret ? <LoaderCircle className="animate-spin" /> : <KeyRound />}
+                    获取 Secret
+                  </Button>
+                </div>
+                <div className={styles.sectionDivider} />
                 {uriFields.map(field => (
                   <Controller
                     key={field.name}
@@ -765,6 +802,53 @@ export function Detail() {
       </Card>
 
       <Dialog
+        open={clientSecret !== null}
+        onOpenChange={open => {
+          if (!open) setClientSecret(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>OAuth 客户端凭据</DialogTitle>
+            <DialogDescription>
+              请保存到目标服务的 Secret 配置中。Atlas 不会持久化这份明文。
+            </DialogDescription>
+          </DialogHeader>
+          {clientSecret ? (
+            <div className="grid gap-4">
+              {(
+                [
+                  ['Client ID', clientSecret.client_id],
+                  ['Client Secret', clientSecret.secret],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="grid gap-2">
+                  <span className="text-sm font-medium">{label}</span>
+                  <div className="flex gap-2">
+                    <Input value={value} readOnly className="font-mono" aria-label={label} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={`复制 ${label}`}
+                      onClick={() => void copyCredential(label, value)}
+                    >
+                      <Copy />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" onClick={() => setClientSecret(null)}>
+              完成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={idpOpen}
         onOpenChange={open => {
           setIdpOpen(open)
@@ -833,18 +917,15 @@ export function Detail() {
               />
             </FormField>
             <FormField
-              label="委托"
-              htmlFor="idp-delegate"
-              error={idpForm.formState.errors.delegate?.message}
+              label="第三方应用 ID"
+              htmlFor="idp-t-app-id"
+              error={idpForm.formState.errors.t_app_id?.message}
             >
-              <Input id="idp-delegate" placeholder="可选" {...idpForm.register('delegate')} />
-            </FormField>
-            <FormField
-              label="必需条件"
-              htmlFor="idp-require"
-              error={idpForm.formState.errors.require?.message}
-            >
-              <Input id="idp-require" placeholder="可选" {...idpForm.register('require')} />
+              <Input
+                id="idp-t-app-id"
+                placeholder="留空时使用域级配置"
+                {...idpForm.register('t_app_id')}
+              />
             </FormField>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIdpOpen(false)}>

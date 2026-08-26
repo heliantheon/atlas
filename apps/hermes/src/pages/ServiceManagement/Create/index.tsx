@@ -18,7 +18,6 @@ const schema = z.object({
   name: z.string().trim().min(1, '请输入名称'),
   description: z.string().trim().min(1, '请输入描述'),
   access_token_expires_in: z.number().int().positive('必须大于 0'),
-  refresh_token_expires_in: z.number().int().positive('必须大于 0'),
 })
 type Values = z.infer<typeof schema>
 
@@ -36,7 +35,6 @@ export function Create() {
       name: '',
       description: '',
       access_token_expires_in: 7200,
-      refresh_token_expires_in: 604800,
     },
   })
   const { run: submit, loading } = useRequest(
@@ -88,19 +86,6 @@ export function Create() {
                 type="number"
                 min={1}
                 {...register('access_token_expires_in', { valueAsNumber: true })}
-              />
-            </FormField>
-            <FormField
-              label="Refresh Token 过期时间（秒）"
-              htmlFor="refresh-token-expiry"
-              required
-              error={errors.refresh_token_expires_in?.message}
-            >
-              <Input
-                id="refresh-token-expiry"
-                type="number"
-                min={1}
-                {...register('refresh_token_expires_in', { valueAsNumber: true })}
               />
             </FormField>
             <FormActions

@@ -57,10 +57,6 @@ export function Detail() {
             <span>Access:</span>
             <span>{formatDuration(service.access_token_expires_in)}</span>
           </div>
-          <div className={styles.tokenRow}>
-            <span>Refresh:</span>
-            <span>{formatDuration(service.refresh_token_expires_in)}</span>
-          </div>
         </div>
       ),
     },

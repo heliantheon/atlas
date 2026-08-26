@@ -1,5 +1,5 @@
 import { useRequest } from 'ahooks'
-import { Boxes, GitBranch, Info, Plus, Share2 } from 'lucide-react'
+import { Boxes, GitBranch, Info, Plus, Share2, ShieldCheck } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Badge } from '@atlas/ui/badge'
 import { Button } from '@atlas/ui/button'
@@ -21,6 +21,7 @@ import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { relationshipApi, serviceApi } from '@/services'
 import type { Relationship, ServiceApplicationRelation } from '@/types'
 import styles from './index.module.scss'
+import { ChallengeSettingsPanel } from './components/ChallengeSettingsPanel'
 
 const subjectLabels: Record<string, string> = { user: '用户', group: '组', application: '应用' }
 
@@ -154,6 +155,10 @@ export function Detail() {
                     <Badge variant="secondary">{relationRows.length}</Badge>
                   ) : null}
                 </TabsTrigger>
+                <TabsTrigger value="challenges">
+                  <ShieldCheck />
+                  Challenge 策略
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="info">
                 <DescriptionList
@@ -170,10 +175,6 @@ export function Detail() {
                     {
                       label: 'Access Token 有效期',
                       value: formatDuration(data.access_token_expires_in),
-                    },
-                    {
-                      label: 'Refresh Token 有效期',
-                      value: formatDuration(data.refresh_token_expires_in),
                     },
                     { label: '创建时间', value: formatDateTime(data.created_at) },
                     { label: '更新时间', value: formatDateTime(data.updated_at) },
@@ -236,6 +237,9 @@ export function Detail() {
                     <EmptyState title="暂无关联关系" />
                   )}
                 </div>
+              </TabsContent>
+              <TabsContent value="challenges">
+                <ChallengeSettingsPanel domainId={domainId!} serviceId={serviceId!} />
               </TabsContent>
             </Tabs>
           </CardContent>

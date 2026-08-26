@@ -10,6 +10,7 @@ import { ApplicationManagement } from '@/pages/ApplicationManagement'
 import { GroupManagement } from '@/pages/GroupManagement'
 import { CapabilityPreview } from '@/pages/CapabilityPreview'
 import { NotFound } from '@/pages/NotFound'
+import { DomainSettings } from '@/pages/DomainSettings'
 
 const RelationshipManagement = lazy(() =>
   import('@/pages/RelationshipManagement').then(module => ({
@@ -40,6 +41,7 @@ export function AppRoutes() {
         <Route path="applications/*" element={<ApplicationManagement />} />
         <Route path="groups/*" element={<GroupManagement />} />
         <Route path="relationships/*" element={relationshipElement} />
+        <Route path="settings" element={<DomainSettings />} />
         <Route path="users" element={<CapabilityPreview capability="users" />} />
         <Route path="audit" element={<CapabilityPreview capability="audit" />} />
         <Route path="*" element={<NotFound />} />

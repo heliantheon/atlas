@@ -20,6 +20,16 @@ body {
   height: 100%;
 }
 
+:root {
+  --primary: #2467a6;
+  --ring: #2467a6;
+  --info: #2467a6;
+  --success: #16835e;
+  --warning: #b46808;
+  --destructive: #b94343;
+  --radius: 0.65rem;
+}
+
 button,
 input,
 textarea {

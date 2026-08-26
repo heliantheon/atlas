@@ -1,13 +1,7 @@
 import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import {
-  AppstoreOutlined,
-  ArrowRightOutlined,
-  ClockCircleOutlined,
-  DeploymentUnitOutlined,
-  ExportOutlined,
-  SearchOutlined,
-} from '@ant-design/icons'
+import { Button, Empty, Tag } from '@heliannuuthus/ui'
+import { ArrowRight, Clock3, ExternalLink, Search } from 'lucide-react'
 import type { PortalOutletContext } from '@/layouts'
 import {
   atlasApps,
@@ -19,8 +13,7 @@ import {
 import styles from './index.module.scss'
 
 export function Home() {
-  const { openLauncher, openSystems } = useOutletContext<PortalOutletContext>()
-  const capabilityCount = atlasApps.reduce((count, app) => count + app.capabilities.length, 0)
+  const { openLauncher } = useOutletContext<PortalOutletContext>()
   const recentTargets = useMemo(
     () =>
       getRecentLaunches()
@@ -28,141 +21,143 @@ export function Home() {
         .filter((target): target is AtlasLaunchTarget => Boolean(target)),
     []
   )
+  const capabilityCount = atlasApps.reduce((sum, app) => sum + app.capabilities.length, 0)
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageHeading}>
+      <header className={styles.hero}>
         <div>
-          <span>工作台</span>
-          <h1>统一业务平台</h1>
-          <p>查看平台接入信息，并从顶部系统入口进入业务系统。</p>
+          <span className={styles.kicker}>OPERATIONS DIRECTORY / PRODUCTION</span>
+          <h1>从系统边界进入工作。</h1>
+          <p>Atlas 只负责定位和切换。身份、投递与业务运营仍由各自系统保持清晰边界。</p>
         </div>
+        <Button size="lg" onClick={openLauncher}>
+          <Search aria-hidden="true" /> 搜索管理入口
+        </Button>
+      </header>
 
-        <div className={styles.headingActions}>
-          <button type="button" onClick={openSystems}>
-            <AppstoreOutlined aria-hidden="true" />
-            打开系统菜单
-          </button>
-          <button type="button" className={styles.primaryAction} onClick={openLauncher}>
-            <SearchOutlined aria-hidden="true" />
-            搜索功能
-          </button>
-        </div>
-      </div>
-
-      <dl className={styles.metrics} aria-label="统一业务平台概况">
+      <section className={styles.contextRail} aria-label="Atlas 目录状态">
         <div>
-          <span className={styles.metricIcon}>
-            <AppstoreOutlined aria-hidden="true" />
+          <span>REGISTERED SYSTEMS</span>
+          <strong>{atlasApps.length}</strong>
+        </div>
+        <div>
+          <span>MANAGEMENT ENTRIES</span>
+          <strong>{capabilityCount}</strong>
+        </div>
+        <div className={styles.contextStatus}>
+          <i aria-hidden="true" />
+          <span>
+            <small>DIRECTORY STATUS</small>
+            <strong>Manifest 已加载</strong>
           </span>
-          <dt>已接入系统</dt>
-          <dd>{atlasApps.length}</dd>
         </div>
         <div>
-          <span className={styles.metricIcon}>
-            <DeploymentUnitOutlined aria-hidden="true" />
-          </span>
-          <dt>功能入口</dt>
-          <dd>{capabilityCount}</dd>
+          <span>OPEN MODE</span>
+          <strong>当前标签页</strong>
         </div>
-        <div>
-          <span className={styles.metricIcon}>
-            <ClockCircleOutlined aria-hidden="true" />
-          </span>
-          <dt>最近访问</dt>
-          <dd>{recentTargets.length}</dd>
-        </div>
-      </dl>
+      </section>
 
-      <div className={styles.contentGrid}>
-        <section className={styles.panel} aria-labelledby="recent-title">
-          <header className={styles.panelHeader}>
-            <div>
-              <h2 id="recent-title">最近访问</h2>
-              <p>保存在当前浏览器中的系统与功能入口。</p>
-            </div>
-            {recentTargets.length > 0 && (
-              <button type="button" onClick={openLauncher}>
-                查看全部
-                <ArrowRightOutlined aria-hidden="true" />
-              </button>
-            )}
-          </header>
-
-          {recentTargets.length > 0 ? (
-            <div className={styles.recentList}>
-              {recentTargets.map(target => (
-                <a key={target.key} href={target.href} onClick={() => recordLaunchTarget(target)}>
-                  {target.icon ? (
-                    <span
-                      className={styles.recentIcon}
-                      style={{ color: target.color, background: target.tint }}
-                    >
-                      {target.icon}
-                    </span>
-                  ) : (
-                    <span
-                      className={styles.recentAccent}
-                      style={{ backgroundColor: target.color }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span className={styles.recentCopy}>
-                    <strong>{target.name}</strong>
-                    <small>{target.appName}</small>
-                  </span>
-                  <ExportOutlined aria-hidden="true" />
-                </a>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.emptyRecent}>
-              <ClockCircleOutlined aria-hidden="true" />
-              <strong>暂无访问记录</strong>
-              <span>从左上角打开系统，访问记录会显示在这里。</span>
-              <button type="button" onClick={openSystems}>
-                选择系统
-              </button>
-            </div>
-          )}
-        </section>
-
-        <aside className={styles.panel} aria-labelledby="platform-title">
-          <header className={styles.panelHeader}>
-            <div>
-              <h2 id="platform-title">平台信息</h2>
-              <p>当前 Portal 的接入方式。</p>
-            </div>
-          </header>
-
-          <dl className={styles.platformFacts}>
-            <div>
-              <dt>系统注册</dt>
-              <dd>Manifest</dd>
-            </div>
-            <div>
-              <dt>系统边界</dt>
-              <dd>独立部署</dd>
-            </div>
-            <div>
-              <dt>打开方式</dt>
-              <dd>当前标签页</dd>
-            </div>
-            <div>
-              <dt>快捷搜索</dt>
-              <dd>Cmd / Ctrl + K</dd>
-            </div>
-          </dl>
-
-          <div className={styles.platformHint}>
-            <span aria-hidden="true" />
-            <p>
-              <strong>系统入口位于左上角</strong>
-              <small>点击菜单按钮可查看所有已接入系统。</small>
-            </p>
+      <section className={styles.directory} aria-labelledby="systems-title">
+        <div className={styles.sectionHeader}>
+          <div>
+            <span>SYSTEM BOUNDARIES</span>
+            <h2 id="systems-title">管理系统</h2>
           </div>
-        </aside>
-      </div>
+          <small>每个系统独立认证、部署和演进</small>
+        </div>
+        <div className={styles.systemList}>
+          {atlasApps.map((app, index) => {
+            const home = getTargetByKey(`${app.id}:home`)!
+            return (
+              <article
+                key={app.id}
+                className={styles.system}
+                style={{ '--app-color': app.color, '--app-tint': app.tint } as React.CSSProperties}
+              >
+                <div className={styles.systemIndex}>{String(index + 1).padStart(2, '0')}</div>
+                <div className={styles.systemIdentity}>
+                  <span className={styles.systemMark}>
+                    <img src={app.logo} alt="" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <div className={styles.systemTitle}>
+                      <h3>{app.name}</h3>
+                      <Tag>{app.category}</Tag>
+                    </div>
+                    <p>{app.description}</p>
+                    <small>{app.mood}</small>
+                  </div>
+                </div>
+                <nav className={styles.capabilities} aria-label={`${app.name} 功能`}>
+                  {app.capabilities.map(capability => {
+                    const target = getTargetByKey(`${app.id}:${capability.id}`)!
+                    return (
+                      <a
+                        key={capability.id}
+                        href={target.href}
+                        onClick={() => recordLaunchTarget(target)}
+                      >
+                        <span>{capability.icon}</span>
+                        {capability.name}
+                        <ArrowRight aria-hidden="true" />
+                      </a>
+                    )
+                  })}
+                </nav>
+                <a
+                  className={styles.openSystem}
+                  href={home.href}
+                  onClick={() => recordLaunchTarget(home)}
+                  aria-label={`打开 ${app.name}`}
+                >
+                  <ExternalLink aria-hidden="true" />
+                </a>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className={styles.recent} aria-labelledby="recent-title">
+        <div className={styles.sectionHeader}>
+          <div>
+            <span>LOCAL HISTORY</span>
+            <h2 id="recent-title">最近入口</h2>
+          </div>
+          <small>仅保存在当前浏览器</small>
+        </div>
+        {recentTargets.length === 0 ? (
+          <Empty
+            icon={<Clock3 />}
+            title="还没有访问记录"
+            description="打开任一管理功能后，它会出现在这里。"
+            actions={
+              <Button variant="outline" onClick={openLauncher}>
+                查找入口
+              </Button>
+            }
+          />
+        ) : (
+          <div className={styles.recentList}>
+            {recentTargets.map(target => (
+              <a key={target.key} href={target.href} onClick={() => recordLaunchTarget(target)}>
+                <span
+                  className={styles.recentIcon}
+                  style={{ color: target.color, background: target.tint }}
+                >
+                  {target.icon ?? target.appName.slice(0, 1)}
+                </span>
+                <span>
+                  <strong>{target.name}</strong>
+                  <small>{target.appName}</small>
+                </span>
+                <ExternalLink aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

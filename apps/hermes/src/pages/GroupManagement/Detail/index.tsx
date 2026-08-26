@@ -1,10 +1,19 @@
+import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { GitBranch, Info, Share2, User, Users } from 'lucide-react'
+import { GitBranch, Info, LoaderCircle, Share2, Trash2, User, Users } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Badge } from '@atlas/ui/badge'
 import { Button } from '@atlas/ui/button'
 import { Card, CardContent } from '@atlas/ui/card'
 import { DescriptionList } from '@atlas/ui/description-list'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@atlas/ui/dialog'
 import { EmptyState } from '@atlas/ui/empty-state'
 import { Spinner } from '@atlas/ui/spinner'
 import { DataTable, type DataTableColumn } from '@atlas/ui/table'
@@ -19,6 +28,8 @@ import styles from './index.module.scss'
 export function Detail() {
   const { groupId } = useParams<{ groupId: string }>()
   const navigate = useAppNavigate()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const { data, loading } = useRequest(() => groupApi.getDetail(groupId!), {
     ready: Boolean(groupId),
     onError: () => toast.error('获取组信息失败'),
@@ -33,6 +44,19 @@ export function Detail() {
   )
   const memberRows = members?.members ?? []
   const relationRows = relationships?.items ?? []
+  const deleteGroup = async () => {
+    if (!groupId) return
+    setDeleting(true)
+    try {
+      await groupApi.delete(groupId)
+      toast.success('用户组已删除')
+      navigate('/groups')
+    } catch {
+      toast.error('删除用户组失败')
+    } finally {
+      setDeleting(false)
+    }
+  }
   const columns: DataTableColumn<Relationship>[] = [
     {
       key: 'service',
@@ -84,7 +108,15 @@ export function Detail() {
       <PageHeader
         title={data.name || '组详情'}
         onBack={() => navigate('/groups')}
-        extra={<Button onClick={() => navigate(`/groups/${groupId}/edit`)}>编辑组</Button>}
+        extra={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDeleteOpen(true)}>
+              <Trash2 />
+              删除组
+            </Button>
+            <Button onClick={() => navigate(`/groups/${groupId}/edit`)}>编辑组</Button>
+          </div>
+        }
       />
       <div className={styles.content}>
         <Card className={styles.mainCard}>
@@ -115,6 +147,7 @@ export function Detail() {
                   className={styles.descriptions}
                   items={[
                     { label: '组 ID', value: <code>{data.group_id}</code> },
+                    { label: '所属服务', value: <code>{data.service_id}</code> },
                     { label: '名称', value: data.name },
                     {
                       label: '描述',
@@ -183,6 +216,24 @@ export function Detail() {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={deleteOpen} onOpenChange={open => !deleting && setDeleteOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除用户组</DialogTitle>
+            <DialogDescription>
+              将删除“{data.name || data.group_id}”。请先确认该组没有仍需保留的成员与授权关系。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={deleting} onClick={() => setDeleteOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" disabled={deleting} onClick={() => void deleteGroup()}>
+              {deleting ? <LoaderCircle className="animate-spin" /> : null}确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

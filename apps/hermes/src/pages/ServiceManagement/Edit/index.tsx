@@ -19,7 +19,6 @@ const schema = z.object({
   name: z.string().trim().min(1, '请输入名称'),
   description: z.string().trim().optional(),
   access_token_expires_in: z.number().int().positive('必须大于 0'),
-  refresh_token_expires_in: z.number().int().positive('必须大于 0'),
 })
 type Values = z.infer<typeof schema>
 
@@ -38,7 +37,6 @@ export function Edit() {
       name: '',
       description: '',
       access_token_expires_in: 7200,
-      refresh_token_expires_in: 604800,
     },
   })
   const { loading: detailLoading } = useRequest(() => serviceApi.getDetail(domainId!, serviceId!), {
@@ -48,7 +46,6 @@ export function Edit() {
         name: data.name,
         description: data.description ?? '',
         access_token_expires_in: data.access_token_expires_in,
-        refresh_token_expires_in: data.refresh_token_expires_in,
       }),
     onError: () => toast.error('获取服务信息失败'),
   })
@@ -98,19 +95,6 @@ export function Edit() {
                 type="number"
                 min={1}
                 {...register('access_token_expires_in', { valueAsNumber: true })}
-              />
-            </FormField>
-            <FormField
-              label="Refresh Token 过期时间（秒）"
-              htmlFor="refresh-token-expiry"
-              required
-              error={errors.refresh_token_expires_in?.message}
-            >
-              <Input
-                id="refresh-token-expiry"
-                type="number"
-                min={1}
-                {...register('refresh_token_expires_in', { valueAsNumber: true })}
               />
             </FormField>
             <FormActions

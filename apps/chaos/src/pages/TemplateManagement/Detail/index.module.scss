@@ -1,59 +1,196 @@
-.container {
-  padding: 24px;
+.page {
+  max-width: 88rem;
+  margin: 0 auto;
 }
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-}
-
 .header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.identity,
+.titleRow,
+.headerActions,
+.sectionHeader {
+  display: flex;
   align-items: center;
-  margin-bottom: 24px;
+  gap: 0.7rem;
 }
-
-.title {
-  font-size: 18px;
-  font-weight: 600;
+.kicker,
+.subject > span,
+.sectionHeader span,
+.metaHeader span {
+  color: #637283;
+  font:
+    700 0.63rem/1.2 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  letter-spacing: 0.12em;
 }
-
-.descriptions {
-  margin-bottom: 24px;
+.titleRow {
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
 }
-
-.section {
-  margin-top: 24px;
-}
-
-.sectionTitle {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.codeBlock {
-  background: #f5f5f5;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-  font-family: 'SF Mono', Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.6;
+.titleRow h1 {
   margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
+  color: #17202a;
+  font-size: clamp(1.55rem, 2.7vw, 2.25rem);
+  letter-spacing: -0.03em;
 }
-
-.preview {
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 24px;
-  max-height: 600px;
-  overflow-y: auto;
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 1rem;
+  align-items: start;
+}
+.content {
+  display: grid;
+  gap: 1rem;
+}
+.subject,
+.codeSection,
+.metadata {
+  overflow: hidden;
+  border: 1px solid #d8e0e7;
+  border-radius: 0.9rem;
+  background: #fff;
+}
+.subject {
+  padding: 1.4rem;
+}
+.subject h2 {
+  margin: 0.55rem 0 0;
+  color: #17202a;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.subject p {
+  margin: 0.5rem 0 0;
+  color: #637283;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+.sectionHeader {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e4e9ed;
+  background: #f7f9fa;
+}
+.sectionHeader > svg {
+  width: 1rem;
+  color: #2467a6;
+}
+.sectionHeader h2 {
+  margin: 0.17rem 0 0;
+  font-size: 0.78rem;
+}
+.codeSection pre {
+  max-height: 31rem;
+  margin: 0;
+  overflow: auto;
+  padding: 1.2rem;
+  background: #202830;
+  color: #dce6ee;
+  font:
+    0.72rem/1.65 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.metadata {
+  position: sticky;
+  top: 5.8rem;
+}
+.metaHeader {
+  padding: 1rem;
+  border-bottom: 1px solid #e4e9ed;
+  background: #f7f9fa;
+}
+.metaHeader strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+}
+.metadata dl {
+  margin: 0;
+}
+.metadata dl > div {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #edf0f3;
+}
+.metadata dt {
+  color: #778493;
+  font-size: 0.65rem;
+}
+.metadata dd {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0.25rem 0 0;
+  color: #28333e;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+.metadata dd svg {
+  width: 0.8rem;
+  color: #778493;
+}
+.policyNote {
+  margin: 1rem;
+  padding: 0.85rem;
+  border-radius: 0.65rem;
+  background: #eef4f8;
+}
+.policyNote strong {
+  font-size: 0.72rem;
+}
+.policyNote p {
+  margin: 0.35rem 0 0;
+  color: #5f6d7b;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+.previewDialog {
+  max-width: min(58rem, calc(100vw - 2rem));
+}
+.previewFrame {
+  width: 100%;
+  min-height: 32rem;
+  border: 1px solid #d8e0e7;
+  border-radius: 0.65rem;
+  background: #fff;
+}
+.previewLoading,
+.state {
+  display: flex;
+  min-height: 16rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: #637283;
+}
+.recipientField > span {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+@media (max-width: 880px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .headerActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+  .metadata {
+    position: static;
+  }
 }

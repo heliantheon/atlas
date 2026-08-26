@@ -1,7 +1,37 @@
 .container {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 1.5rem;
+  background: #f4f6f8;
+  text-align: center;
+}
+
+.container h1 {
+  margin: 0.5rem 0 0;
+  color: #17202a;
+  font-size: 1.35rem;
+}
+.container p {
+  max-width: 30rem;
+  margin: 0;
+  color: #637283;
+  line-height: 1.55;
+}
+.errorIcon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: #f9e8e8;
+  color: #b94343;
+}
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
 }

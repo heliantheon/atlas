@@ -1,155 +1,173 @@
-import { useRequest } from 'ahooks'
-import { ArrowUpRight, Cloud, FileCode2, Mail, Plus, Radio, UploadCloud } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Card } from '@atlas/ui/card'
-import { Progress } from '@atlas/ui/progress'
-import { Skeleton } from '@atlas/ui/skeleton'
-import { chaosTemplateApi, type EmailTemplate } from '@/services'
+import { useRequest } from 'ahooks'
+import { Button, Empty, Spinner, Tag } from '@heliannuuthus/ui'
+import { ArrowRight, FileCode2, Radio, ScrollText, Send, UploadCloud } from 'lucide-react'
+import { chaosTemplateApi } from '@/services'
 import styles from './index.module.scss'
+
+const formatRelative = (value: string) => {
+  const elapsed = Date.now() - new Date(value).getTime()
+  const minutes = Math.max(1, Math.round(elapsed / 60_000))
+  if (minutes < 60) return `${minutes} 分钟前`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} 小时前`
+  return `${Math.round(hours / 24)} 天前`
+}
 
 export function Dashboard() {
   const navigate = useNavigate()
-  const { data, loading } = useRequest(() => chaosTemplateApi.getList())
-  const templates = (data as EmailTemplate[] | undefined) ?? []
+  const { data, loading, error, refresh } = useRequest(() => chaosTemplateApi.getList())
+  const templates = data ?? []
   const enabled = templates.filter(template => template.is_enabled).length
+  const disabled = templates.length - enabled
   const builtIn = templates.filter(template => template.is_builtin).length
-  const coverage = templates.length ? Math.round((enabled / templates.length) * 100) : 0
+  const recent = [...templates]
+    .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at))
+    .slice(0, 5)
 
   return (
     <div className={styles.page}>
-      <section className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden="true" />
-        <div className={styles.heroCopy}>
-          <div className={styles.eyebrow}>
-            <Radio /> DELIVERY CONTROL PLANE
-          </div>
-          <h1>
-            让每一次投递，
-            <br />
-            <span>有迹可循。</span>
-          </h1>
-          <p>集中管理邮件模板与对象存储，把内容生产、预览和分发收束到一个可靠入口。</p>
-          <div className={styles.heroActions}>
-            <Button size="lg" onClick={() => navigate('/templates/create')}>
-              <Plus />
-              创建模板
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/files')}>
-              <UploadCloud />
-              上传文件
-            </Button>
-          </div>
+      <header className={styles.header}>
+        <div>
+          <span className={styles.kicker}>DELIVERY CONTROL / OVERVIEW</span>
+          <h1>投递控制台</h1>
+          <p>从内容资产开始一次投递，或沿 Trace ID 检查它经过的完整路径。</p>
         </div>
-        <div className={styles.orbit} aria-hidden="true">
-          <div className={styles.orbitRing} />
-          <div className={styles.core}>
-            <Mail />
-          </div>
-          <span className={styles.nodeOne}>
-            <FileCode2 />
-          </span>
-          <span className={styles.nodeTwo}>
-            <Cloud />
-          </span>
-          <span className={styles.nodeThree}>
-            <ArrowUpRight />
-          </span>
-        </div>
-      </section>
-
-      <section className={styles.metrics} aria-label="服务概览">
-        <Card className={styles.metric}>
-          <span className={styles.metricLabel}>模板资产</span>
-          {loading ? (
-            <Skeleton className={styles.valueSkeleton} />
-          ) : (
-            <strong>{templates.length.toString().padStart(2, '0')}</strong>
-          )}
-          <span>含 {builtIn} 个内置模板</span>
-        </Card>
-        <Card className={styles.metric}>
-          <span className={styles.metricLabel}>启用模板</span>
-          {loading ? (
-            <Skeleton className={styles.valueSkeleton} />
-          ) : (
-            <strong>{enabled.toString().padStart(2, '0')}</strong>
-          )}
-          <div className={styles.progressRow}>
-            <Progress value={coverage} />
-            <span>{coverage}%</span>
-          </div>
-        </Card>
-        <Card className={styles.metric}>
-          <span className={styles.metricLabel}>邮件通道</span>
-          <strong className={styles.statusValue}>
-            <i />
-            在线
-          </strong>
-          <span>SMTP 服务连接正常</span>
-        </Card>
-        <Card className={styles.metric}>
-          <span className={styles.metricLabel}>对象存储</span>
-          <strong className={styles.storageValue}>R2</strong>
-          <span>Cloudflare 全球存储</span>
-        </Card>
-      </section>
-
-      <section className={styles.workspace}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <span>WORKSPACE</span>
-            <h2>今天从这里开始</h2>
-          </div>
-          <Button variant="ghost" onClick={() => navigate('/templates')}>
-            查看全部模板 <ArrowUpRight />
+        <div className={styles.headerActions}>
+          <Button variant="outline" onClick={() => navigate('/logs')}>
+            <ScrollText aria-hidden="true" /> 检索日志
+          </Button>
+          <Button onClick={() => navigate('/templates/create')}>
+            <FileCode2 aria-hidden="true" /> 创建模板
           </Button>
         </div>
-        <div className={styles.actionGrid}>
-          <button
-            type="button"
-            className={styles.actionCard}
-            onClick={() => navigate('/templates/create')}
-          >
-            <span className={styles.actionIndex}>01</span>
-            <span className={styles.actionIcon}>
-              <FileCode2 />
-            </span>
-            <strong>设计一封邮件</strong>
-            <p>使用 Go Template 变量创建可复用的 HTML 邮件。</p>
-            <ArrowUpRight className={styles.actionArrow} />
-          </button>
-          <button type="button" className={styles.actionCard} onClick={() => navigate('/files')}>
-            <span className={styles.actionIndex}>02</span>
-            <span className={styles.actionIcon}>
-              <UploadCloud />
-            </span>
-            <strong>分发一个文件</strong>
-            <p>上传至 R2 并立即获得可复制的公开访问地址。</p>
-            <ArrowUpRight className={styles.actionArrow} />
-          </button>
-          <div className={styles.serviceCard}>
-            <div className={styles.serviceTop}>
-              <Badge variant="secondary">SYSTEM NOTE</Badge>
-              <span>CHAOS / 01</span>
+      </header>
+
+      <section className={styles.signalBand} aria-label="Chaos 当前状态">
+        <div
+          className={styles.signalLead}
+          data-state={error ? 'error' : loading ? 'loading' : 'ready'}
+        >
+          {loading ? <Spinner /> : <Radio aria-hidden="true" />}
+          <div>
+            <span>MANAGEMENT API</span>
+            <strong>{loading ? '正在连接' : error ? '接口不可用' : '管理接口已响应'}</strong>
+          </div>
+          {error ? (
+            <Button size="sm" variant="outline" onClick={refresh}>
+              重试
+            </Button>
+          ) : null}
+        </div>
+        <dl>
+          <div>
+            <dt>模板总数</dt>
+            <dd>{loading ? '—' : templates.length}</dd>
+          </div>
+          <div>
+            <dt>允许投递</dt>
+            <dd>{loading ? '—' : enabled}</dd>
+          </div>
+          <div>
+            <dt>已停用</dt>
+            <dd>{loading ? '—' : disabled}</dd>
+          </div>
+          <div>
+            <dt>系统内置</dt>
+            <dd>{loading ? '—' : builtIn}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div className={styles.workbench}>
+        <section className={styles.recent}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <span>RECENT ASSETS</span>
+              <h2>最近更新的模板</h2>
             </div>
-            <blockquote>
-              “模板负责表达，存储负责抵达。Chaos 让两者共享同一条可靠的分发路径。”
-            </blockquote>
-            <div className={styles.serviceLine}>
-              <span>MAIL</span>
-              <i />
-              <b>READY</b>
+            <Button variant="ghost" onClick={() => navigate('/templates')}>
+              全部模板 <ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
+          {loading ? (
+            <div className={styles.state}>
+              <Spinner /> 正在读取内容资产…
             </div>
-            <div className={styles.serviceLine}>
-              <span>STORAGE</span>
-              <i />
-              <b>READY</b>
+          ) : null}
+          {!loading && error ? <div className={styles.state}>无法读取模板，请重试。</div> : null}
+          {!loading && !error && recent.length === 0 ? (
+            <Empty
+              title="还没有模板"
+              description="创建一份模板后，它会显示在这里。"
+              actions={<Button onClick={() => navigate('/templates/create')}>创建模板</Button>}
+            />
+          ) : null}
+          {!loading && !error
+            ? recent.map(template => (
+                <button
+                  key={template.template_id}
+                  type="button"
+                  className={styles.assetRow}
+                  onClick={() => navigate(`/templates/${template.template_id}`)}
+                >
+                  <span className={styles.assetIcon}>
+                    <FileCode2 aria-hidden="true" />
+                  </span>
+                  <span className={styles.assetIdentity}>
+                    <strong>{template.name}</strong>
+                    <code>{template.template_id}</code>
+                  </span>
+                  <span className={styles.assetSubject}>{template.subject}</span>
+                  <Tag type={template.is_enabled ? 'success' : 'default'}>
+                    {template.is_enabled ? '启用' : '停用'}
+                  </Tag>
+                  <time dateTime={template.updated_at}>{formatRelative(template.updated_at)}</time>
+                  <ArrowRight className={styles.assetArrow} aria-hidden="true" />
+                </button>
+              ))
+            : null}
+        </section>
+
+        <aside className={styles.commandRail}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <span>QUICK COMMANDS</span>
+              <h2>发起操作</h2>
             </div>
           </div>
-        </div>
-      </section>
+          <button type="button" onClick={() => navigate('/templates/create')}>
+            <span>
+              <FileCode2 aria-hidden="true" />
+            </span>
+            <div>
+              <strong>设计邮件</strong>
+              <p>创建可复用的 Go template 内容。</p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => navigate('/files')}>
+            <span>
+              <UploadCloud aria-hidden="true" />
+            </span>
+            <div>
+              <strong>上传对象</strong>
+              <p>签发地址后直接上传到对象存储。</p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => navigate('/templates')}>
+            <span>
+              <Send aria-hidden="true" />
+            </span>
+            <div>
+              <strong>测试投递</strong>
+              <p>从模板详情发起一次真实队列投递。</p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </button>
+        </aside>
+      </div>
     </div>
   )
 }

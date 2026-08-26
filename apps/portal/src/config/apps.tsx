@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react'
 import {
-  ApartmentOutlined,
-  AppstoreAddOutlined,
-  BookOutlined,
-  CloudServerOutlined,
-  CloudUploadOutlined,
-  FileTextOutlined,
-  FireOutlined,
-  HeartOutlined,
-  TagsOutlined,
-  TeamOutlined,
-} from '@ant-design/icons'
+  AppWindow,
+  BookOpen,
+  Building2,
+  CloudUpload,
+  FileText,
+  Flame,
+  Heart,
+  Server,
+  Tags,
+  Users,
+} from 'lucide-react'
 import { PRODUCT_BRAND_COLORS } from '@atlas/ui/brand-colors'
 
 export interface AtlasCapability {
@@ -66,20 +66,20 @@ export const atlasApps: AtlasAppManifest[] = [
     color: PRODUCT_BRAND_COLORS.hermes,
     tint: '#fff1e8',
     capabilities: [
-      { id: 'domains', name: '选择域', path: '/', icon: <ApartmentOutlined /> },
+      { id: 'domains', name: '选择域', path: '/', icon: <Building2 /> },
       {
         id: 'services',
         name: '服务管理',
         path: '/?next=services',
-        icon: <CloudServerOutlined />,
+        icon: <Server />,
       },
       {
         id: 'applications',
         name: '应用管理',
         path: '/?next=applications',
-        icon: <AppstoreAddOutlined />,
+        icon: <AppWindow />,
       },
-      { id: 'groups', name: '组管理', path: '/?next=groups', icon: <TeamOutlined /> },
+      { id: 'groups', name: '组管理', path: '/?next=groups', icon: <Users /> },
     ],
   },
   {
@@ -94,8 +94,8 @@ export const atlasApps: AtlasAppManifest[] = [
     color: PRODUCT_BRAND_COLORS.chaos,
     tint: '#f0f2f5',
     capabilities: [
-      { id: 'templates', name: '邮件模板', path: '/templates', icon: <FileTextOutlined /> },
-      { id: 'files', name: '文件管理', path: '/files', icon: <CloudUploadOutlined /> },
+      { id: 'templates', name: '邮件模板', path: '/templates', icon: <FileText /> },
+      { id: 'files', name: '对象上传', path: '/files', icon: <CloudUpload /> },
     ],
   },
   {
@@ -110,10 +110,10 @@ export const atlasApps: AtlasAppManifest[] = [
     color: PRODUCT_BRAND_COLORS.zwei,
     tint: '#fff0ee',
     capabilities: [
-      { id: 'recipes', name: '菜谱管理', path: '/recipes', icon: <BookOutlined /> },
-      { id: 'favorites', name: '收藏管理', path: '/favorites', icon: <HeartOutlined /> },
-      { id: 'recommend', name: '推荐系统', path: '/recommend', icon: <FireOutlined /> },
-      { id: 'tags', name: '标签管理', path: '/tags', icon: <TagsOutlined /> },
+      { id: 'recipes', name: '菜谱管理', path: '/recipes', icon: <BookOpen /> },
+      { id: 'favorites', name: '收藏管理', path: '/favorites', icon: <Heart /> },
+      { id: 'recommend', name: '推荐系统', path: '/recommend', icon: <Flame /> },
+      { id: 'tags', name: '标签管理', path: '/tags', icon: <Tags /> },
     ],
   },
 ]

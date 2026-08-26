@@ -29,9 +29,30 @@ export interface Service {
   description?: string
   logo_url?: string
   access_token_expires_in: number
-  refresh_token_expires_in: number
   created_at: string
   updated_at: string
+}
+
+export type RateLimits = Record<string, number>
+
+export interface ServiceChallengeSetting {
+  service_id: string
+  type: string
+  expires_in: number
+  limits?: RateLimits
+  created_at: string
+  updated_at: string
+}
+
+export interface ServiceChallengeSettingCreateRequest {
+  type: string
+  expires_in: number
+  limits: RateLimits
+}
+
+export interface ServiceChallengeSettingUpdateRequest {
+  expires_in?: number
+  limits?: RateLimits
 }
 
 export interface Application {
@@ -55,16 +76,51 @@ export interface ApplicationIDPConfig {
   type: string
   priority: number
   strategy?: string
-  delegate?: string
-  require?: string
+  t_app_id?: string
   created_at: string
   updated_at: string
 }
 
-export interface DomainIDP {
+export interface DomainIDPConfig {
   domain_id: string
   idp_type: string
+  priority: number
+  strategy?: string
+  t_app_id: string
   created_at: string
+  updated_at: string
+}
+
+export interface DomainIDPConfigCreateRequest {
+  idp_type: string
+  priority?: number
+  strategy?: string
+  t_app_id: string
+}
+
+export interface DomainIDPConfigUpdateRequest {
+  priority?: number
+  strategy?: string
+  t_app_id?: string
+}
+
+export interface IDPKey {
+  idp_type: string
+  t_app_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface IDPKeyCreateRequest {
+  idp_type: string
+  t_app_id: string
+  t_secret: string
+}
+
+export interface ApplicationSecret {
+  client_id: string
+  type: 'client-secret'
+  secret: string
 }
 
 export interface Relationship {
@@ -104,16 +160,15 @@ export interface ServiceCreateRequest {
   domain_id: string
   name: string
   description: string
+  logo_url?: string
   access_token_expires_in?: number
-  refresh_token_expires_in?: number
 }
 
 export interface ServiceUpdateRequest {
   name?: string
   description?: string
+  logo_url?: string
   access_token_expires_in?: number
-  refresh_token_expires_in?: number
-  status?: number
 }
 
 export interface ApplicationCreateRequest {
@@ -142,15 +197,13 @@ export interface ApplicationIDPConfigCreateRequest {
   type: string
   priority?: number
   strategy?: string
-  delegate?: string
-  require?: string
+  t_app_id?: string
 }
 
 export interface ApplicationIDPConfigUpdateRequest {
   priority?: number
   strategy?: string
-  delegate?: string
-  require?: string
+  t_app_id?: string
 }
 
 export interface ApplicationServiceRelationRequest {
@@ -191,6 +244,7 @@ export interface RelationshipDeleteRequest {
 
 export interface GroupCreateRequest {
   group_id: string
+  service_id: string
   name: string
   description?: string
 }
@@ -203,4 +257,18 @@ export interface GroupUpdateRequest {
 export interface GroupMemberRequest {
   group_id: string
   user_ids: string[]
+}
+
+export interface AppServiceRelationshipCreateRequest {
+  subject_type: string
+  subject_id: string
+  relation: string
+  object_type: string
+  object_id: string
+  expires_at?: string
+}
+
+export interface AppServiceRelationshipUpdateRequest {
+  new_relation?: string
+  expires_at?: string | null
 }

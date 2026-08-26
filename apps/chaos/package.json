@@ -11,16 +11,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.0",
     "@atlas/shared": "workspace:*",
     "@atlas/ui": "workspace:*",
     "@heliantheons/aegis-ts": "^1.3.3",
     "@heliannuuthus/ui": "https://github.com/heliannuuthus/ui/releases/download/v0.1.0/heliannuuthus-ui-0.1.0.tgz",
     "ahooks": "^3.7.8",
-    "antd": "^6.0.0",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
-    "dayjs": "^1.11.13",
     "lucide-react": "^1.25.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
