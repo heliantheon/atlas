@@ -46,5 +46,6 @@ jobs:
         atlas/overlay/release-atlas.yaml=ghcr.io/heliantheons/atlas
         atlas/overlay/release-hermes-ui.yaml=ghcr.io/heliantheons/hermes-ui
         atlas/overlay/release-chaos-ui.yaml=ghcr.io/heliantheons/chaos-ui
+      gitops_app_id: '4727462'
     secrets:
-      gitops_token: '${{ secrets.GITOPS_TOKEN }}'
+      gitops_app_private_key: '${{ secrets.GITOPS_APP_PRIVATE_KEY }}'
