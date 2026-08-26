@@ -43,8 +43,8 @@ jobs:
     with:
       version: '${{ needs.ci.outputs.version }}'
       updates: |
-        atlas/overlay/release-atlas.yaml=ghcr.io/heliantheon/atlas
-        atlas/overlay/release-hermes-ui.yaml=ghcr.io/heliantheon/hermes-ui
-        atlas/overlay/release-chaos-ui.yaml=ghcr.io/heliantheon/chaos-ui
+        atlas/overlay/release-atlas.yaml=ghcr.io/heliantheons/atlas
+        atlas/overlay/release-hermes-ui.yaml=ghcr.io/heliantheons/hermes-ui
+        atlas/overlay/release-chaos-ui.yaml=ghcr.io/heliantheons/chaos-ui
     secrets:
       gitops_token: '${{ secrets.GITOPS_TOKEN }}'
