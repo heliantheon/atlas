@@ -27,7 +27,13 @@ export interface SendMailRequest {
   to: string
   subject?: string
   template_id: string
+  variables?: Record<string, unknown>
   data?: Record<string, unknown>
+  expires_at?: string
+}
+
+export interface SendMailResponse {
+  delivery_id: string
 }
 
 export interface TemplateCreateRequest {
@@ -69,7 +75,46 @@ export const chaosTemplateApi = {
 }
 
 export const chaosMailApi = {
-  send: (data: SendMailRequest) => request.post('/mail', data),
+  send: (data: SendMailRequest) => request.post<SendMailResponse>('/mail', data),
+}
+
+export interface PresignUploadRequest {
+  file_name: string
+  content_type: string
+  path?: string
+  prefix?: string
+}
+
+export interface PresignUploadResponse {
+  upload_url: string
+  key: string
+  public_url: string
+  expires_in: number
+}
+
+export const chaosStorageApi = {
+  presign: (data: PresignUploadRequest) => request.post<PresignUploadResponse>('/presign', data),
+  upload: async (file: File, options?: { path?: string; prefix?: string }) => {
+    const target = await chaosStorageApi.presign({
+      file_name: file.name,
+      content_type: file.type || 'application/octet-stream',
+      path: options?.path,
+      prefix: options?.prefix,
+    })
+    const response = await fetch(target.upload_url, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    })
+    if (!response.ok) throw new Error(`对象存储上传失败 (${response.status})`)
+    return {
+      key: target.key,
+      file_name: file.name,
+      file_size: file.size,
+      content_type: file.type || 'application/octet-stream',
+      public_url: target.public_url,
+    } satisfies FileUploadResult
+  },
 }
 
 export interface LogEntry {

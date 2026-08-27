@@ -1,8 +1,5 @@
 import { useMemo } from 'react'
-import { Alert, AlertDescription, AlertTitle } from '@atlas/ui/alert'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Skeleton } from '@atlas/ui/skeleton'
+import { Alert, Button, Skeleton, Tag } from '@heliannuuthus/ui'
 import {
   AppWindow,
   ArrowRight,
@@ -20,6 +17,7 @@ import { formatRelativeTime, isExpiringSoon } from '@atlas/shared'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi, groupApi, relationshipApi, serviceApi } from '@/services'
 import type { Application, Group, Relationship, Service } from '@/types'
+import { collectCursorPages, collectScopedCursorPages } from '@/utils/pagination'
 import styles from './index.module.scss'
 
 type ResourceKind = 'application' | 'service' | 'group' | 'relationship'
@@ -90,21 +88,29 @@ export function Dashboard() {
 
   const { data, loading, error, refresh } = useRequest(
     async () => {
-      const [domain, servicesData, applicationsData, groupsData, relationshipsData] =
-        await Promise.all([
-          domainApi.getDetail(domainId!),
-          serviceApi.getList(domainId!),
-          applicationApi.getList(domainId!),
-          groupApi.getList(),
-          relationshipApi.getList(),
-        ])
+      const [domain, servicesData, applicationsData] = await Promise.all([
+        domainApi.getDetail(domainId!),
+        collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+        collectCursorPages(token =>
+          applicationApi.getList(domainId!, undefined, { token, size: 100 })
+        ),
+      ])
+      const serviceIds = servicesData.map(service => service.service_id)
+      const [groupsData, relationshipsData] = await Promise.all([
+        collectScopedCursorPages(serviceIds, (serviceId, token) =>
+          groupApi.getList({ service_id: serviceId }, { token, size: 100 })
+        ),
+        collectScopedCursorPages(serviceIds, (serviceId, token) =>
+          relationshipApi.getList({ service_id: serviceId }, { token, size: 100 })
+        ),
+      ])
 
       return {
         domain,
-        services: servicesData.items ?? [],
-        applications: applicationsData.items ?? [],
-        allGroups: groupsData.items ?? [],
-        allRelationships: relationshipsData.items ?? [],
+        services: servicesData,
+        applications: applicationsData,
+        groups: groupsData,
+        relationships: relationshipsData,
       }
     },
     { ready: Boolean(domainId), refreshDeps: [domainId] }
@@ -113,11 +119,8 @@ export function Dashboard() {
   const viewModel = useMemo(() => {
     const services = data?.services ?? []
     const applications = data?.applications ?? []
-    const serviceIds = new Set(services.map(service => service.service_id))
-    const groups = (data?.allGroups ?? []).filter(group => serviceIds.has(group.service_id))
-    const relationships = (data?.allRelationships ?? []).filter(relation =>
-      serviceIds.has(relation.service_id)
-    )
+    const groups = data?.groups ?? []
+    const relationships = data?.relationships ?? []
     const servicesWithRelations = new Set(relationships.map(relation => relation.service_id))
     const coverage = services.length
       ? Math.round((servicesWithRelations.size / services.length) * 100)
@@ -198,7 +201,7 @@ export function Dashboard() {
             <ArrowLeftRight />
             切换工作域
           </Button>
-          <Button onClick={() => navigate('applications', { state: { openCreate: true } })}>
+          <Button onClick={() => navigate('applications/create')}>
             <Plus />
             创建应用
           </Button>
@@ -206,17 +209,17 @@ export function Dashboard() {
       </section>
 
       {error ? (
-        <Alert variant="warning" className={styles.dataAlert}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <AlertTitle>部分运营数据暂时不可用</AlertTitle>
-              <AlertDescription>请确认 Hermes 服务连接后重试。</AlertDescription>
-            </div>
+        <Alert
+          variant="warning"
+          className={styles.dataAlert}
+          title="部分运营数据暂时不可用"
+          description="请确认 Hermes 服务连接后重试。"
+          action={
             <Button variant="outline" size="sm" onClick={refresh}>
               重新加载
             </Button>
-          </div>
-        </Alert>
+          }
+        />
       ) : null}
 
       <section className={styles.metrics} aria-label="资源统计">
@@ -449,7 +452,7 @@ export function Dashboard() {
                   <span className={styles.activityIcon}>{activityIcons[activity.kind]}</span>
                   <div>
                     <span>
-                      <Badge variant="secondary">{activityLabels[activity.kind]}</Badge>
+                      <Tag type="info">{activityLabels[activity.kind]}</Tag>
                       <strong>{activity.name}</strong>
                     </span>
                     <small>{formatRelativeTime(activity.time)}</small>

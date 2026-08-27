@@ -1,0 +1,10 @@
+.contextActions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+@media (max-width: 620px) {
+  .contextActions > :first-child {
+    display: none;
+  }
+}

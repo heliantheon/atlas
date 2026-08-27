@@ -32,6 +32,7 @@ function entryKey(entry: LogEntry) {
 
 export function LogExplorer() {
   const [service, setService] = useState('')
+  const [environment, setEnvironment] = useState('')
   const [severity, setSeverity] = useState('')
   const [search, setSearch] = useState('')
   const [traceID, setTraceID] = useState('')
@@ -47,12 +48,13 @@ export function LogExplorer() {
   const baseParams = useMemo<LogQueryParams>(
     () => ({
       service: service.trim() || undefined,
+      environment: environment.trim() || undefined,
       severity: severity || undefined,
       search: search.trim() || undefined,
       trace_id: traceID.trim().toLowerCase() || undefined,
       limit: 500,
     }),
-    [search, service, severity, traceID]
+    [environment, search, service, severity, traceID]
   )
 
   const stopLive = useCallback(() => {
@@ -160,6 +162,8 @@ export function LogExplorer() {
             value={service}
             onChange={event => setService(event.target.value)}
             placeholder="全部服务"
+            maxLength={63}
+            spellCheck={false}
           />
         </label>
         <label>
@@ -172,12 +176,23 @@ export function LogExplorer() {
             ))}
           </select>
         </label>
+        <label>
+          <span>环境</span>
+          <Input
+            value={environment}
+            onChange={event => setEnvironment(event.target.value)}
+            placeholder="production"
+            maxLength={32}
+            spellCheck={false}
+          />
+        </label>
         <label className={styles.searchField}>
           <span>正文关键字</span>
           <Input
             value={search}
             onChange={event => setSearch(event.target.value)}
             placeholder="delivery failed"
+            maxLength={256}
           />
         </label>
         <label className={styles.traceField}>
@@ -186,6 +201,8 @@ export function LogExplorer() {
             value={traceID}
             onChange={event => setTraceID(event.target.value)}
             placeholder="32 位十六进制"
+            maxLength={32}
+            spellCheck={false}
           />
         </label>
         <div className={styles.actions}>

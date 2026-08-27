@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ArrowRightOutlined } from '@ant-design/icons'
+import { ArrowRight } from 'lucide-react'
 import { atlasApps, getTargetByKey, recordLaunchTarget } from '@/config/apps'
 import styles from './index.module.scss'
 
@@ -74,7 +74,7 @@ export function SystemDrawer({ open, onClose }: SystemDrawerProps) {
                 <em>{app.description}</em>
                 <b>{app.capabilities.length} 个功能入口</b>
               </span>
-              <ArrowRightOutlined aria-hidden="true" />
+              <ArrowRight aria-hidden="true" />
             </a>
           )
         })}

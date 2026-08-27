@@ -1,22 +1,27 @@
 import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { Plus } from 'lucide-react'
+import { ArrowRight, KeyRound, Network, Plus, RotateCcw } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Spinner } from '@atlas/ui/spinner'
+import { Alert, Button, Empty, Spinner } from '@heliannuuthus/ui'
 import { DomainDialog, type DomainDialogState } from '@/components/DomainSwitcher/DomainDialog'
 import { domainApi } from '@/services'
 import type { Domain } from '@/types'
 import styles from './index.module.scss'
 
+const sectionLabels: Record<string, string> = {
+  applications: '应用目录',
+  services: '服务边界',
+  groups: '用户组',
+}
+
 export function DomainPicker() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [dialogState, setDialogState] = useState<DomainDialogState>(null)
-  const { data: domains = [], loading, refresh } = useRequest(domainApi.getList)
+  const { data: domains = [], loading, error, refresh } = useRequest(domainApi.getList)
   const requestedSection = searchParams.get('next')
   const nextSection = ['applications', 'services', 'groups'].includes(requestedSection ?? '')
-    ? requestedSection
+    ? (requestedSection as keyof typeof sectionLabels)
     : undefined
   const openDomain = (domain: Domain) => {
     const basePath = `/d/${encodeURIComponent(domain.domain_id)}`
@@ -25,49 +30,106 @@ export function DomainPicker() {
 
   return (
     <div className={styles.wrapper}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>选择域</h1>
-        <p className={styles.desc}>
-          域是身份与权限的隔离边界。选择一个域，进入对应的资源与访问关系工作区。
-        </p>
+      <header className={styles.productBar}>
+        <div className={styles.productIdentity}>
+          <span className={styles.productMark}>H</span>
+          <span>
+            <strong>Hermes</strong>
+            <small>IDENTITY OPERATIONS</small>
+          </span>
+        </div>
+        <span
+          className={styles.apiState}
+          data-state={error ? 'error' : loading ? 'loading' : 'ready'}
+        >
+          <i />
+          {error ? 'API unavailable' : loading ? 'Checking API' : 'API connected'}
+        </span>
       </header>
-      <main className={styles.main}>
-        {loading ? (
-          <div className={styles.loading}>
-            <Spinner className="size-7" />
+
+      <main className={styles.workspace}>
+        <section className={styles.intro}>
+          <div>
+            <span className={styles.eyebrow}>CONTROL PLANE / DOMAIN REGISTRY</span>
+            <h1>选择身份隔离边界</h1>
+            <p>每个域独立管理应用、服务、身份源、用户组与授权关系。</p>
           </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {domains.map(domain => (
-              <Card key={domain.domain_id} className={styles.domainCard}>
-                <button
-                  type="button"
-                  className="h-full w-full text-left"
-                  onClick={() => openDomain(domain)}
-                >
-                  <CardContent className={styles.cardBody}>
-                    <div className={styles.cardName}>{domain.name || domain.domain_id}</div>
-                    {domain.description ? (
-                      <div className={styles.cardDesc}>{domain.description}</div>
-                    ) : null}
-                    <code className={styles.cardId}>{domain.domain_id}</code>
-                  </CardContent>
-                </button>
-              </Card>
-            ))}
-            <button
-              type="button"
-              className={styles.domainCardAdd}
-              onClick={() => setDialogState({ mode: 'create' })}
-            >
-              <span className={styles.cardAddBody}>
-                <Plus className={styles.cardAddIcon} />
-                <span className={styles.cardAddText}>添加域</span>
-              </span>
-            </button>
-          </div>
-        )}
+          <Button onClick={() => setDialogState({ mode: 'create' })}>
+            <Plus />
+            创建域
+          </Button>
+        </section>
+
+        <div className={styles.contextStrip}>
+          <span>
+            <Network />
+            已登记 <strong>{loading ? '—' : domains.length}</strong> 个域
+          </span>
+          <span>
+            <KeyRound />
+            {nextSection ? `进入后打开：${sectionLabels[nextSection]}` : '进入后打开：域运行总览'}
+          </span>
+        </div>
+
+        {error ? (
+          <Alert
+            variant="warning"
+            title="域目录暂时无法加载"
+            description="请确认 Hermes 管理接口可用后重试。"
+            action={
+              <Button variant="outline" size="sm" onClick={refresh}>
+                <RotateCcw />
+                重新加载
+              </Button>
+            }
+          />
+        ) : null}
+
+        <section className={styles.directory} aria-labelledby="domain-directory-title">
+          <header className={styles.directoryHeader}>
+            <div>
+              <span>01</span>
+              <h2 id="domain-directory-title">域目录</h2>
+            </div>
+            <small>选择一条边界进入工作区</small>
+          </header>
+
+          {loading ? (
+            <div className={styles.loading} aria-label="正在加载域目录">
+              <Spinner className="size-7" />
+            </div>
+          ) : domains.length ? (
+            <ol className={styles.domainList}>
+              {domains.map((domain, index) => (
+                <li key={domain.domain_id}>
+                  <button type="button" onClick={() => openDomain(domain)}>
+                    <span className={styles.rowIndex}>{String(index + 1).padStart(2, '0')}</span>
+                    <span className={styles.rowContent}>
+                      <strong>{domain.name || domain.domain_id}</strong>
+                      <span>{domain.description || '尚未补充域说明'}</span>
+                    </span>
+                    <code>{domain.domain_id}</code>
+                    <ArrowRight />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <Empty
+              title="尚未登记身份域"
+              description="创建第一个域，开始配置应用与服务边界。"
+              icon={<Network className="size-8" />}
+              actions={
+                <Button onClick={() => setDialogState({ mode: 'create' })}>
+                  <Plus />
+                  创建域
+                </Button>
+              }
+            />
+          )}
+        </section>
       </main>
+
       <DomainDialog
         state={dialogState}
         onOpenChange={open => !open && setDialogState(null)}

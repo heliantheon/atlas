@@ -3,11 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Spinner } from '@atlas/ui/spinner'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Spinner, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -18,8 +14,8 @@ import styles from './index.module.scss'
 const schema = z.object({
   name: z.string().trim().min(1, '请输入名称'),
   description: z.string().trim().optional(),
+  logo_url: z.string().trim().url('请输入完整的 Logo URL').or(z.literal('')),
   access_token_expires_in: z.number().int().positive('必须大于 0'),
-  refresh_token_expires_in: z.number().int().positive('必须大于 0'),
 })
 type Values = z.infer<typeof schema>
 
@@ -37,8 +33,8 @@ export function Edit() {
     defaultValues: {
       name: '',
       description: '',
+      logo_url: '',
       access_token_expires_in: 7200,
-      refresh_token_expires_in: 604800,
     },
   })
   const { loading: detailLoading } = useRequest(() => serviceApi.getDetail(domainId!, serviceId!), {
@@ -47,14 +43,18 @@ export function Edit() {
       reset({
         name: data.name,
         description: data.description ?? '',
+        logo_url: data.logo_url ?? '',
         access_token_expires_in: data.access_token_expires_in,
-        refresh_token_expires_in: data.refresh_token_expires_in,
       }),
     onError: () => toast.error('获取服务信息失败'),
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
-      await serviceApi.update(domainId!, serviceId!, values)
+      await serviceApi.update(domainId!, serviceId!, {
+        ...values,
+        description: values.description?.trim() || null,
+        logo_url: values.logo_url.trim() || null,
+      })
       toast.success('更新成功')
       navigate(`/services/${serviceId}`)
     },
@@ -71,55 +71,40 @@ export function Edit() {
     <div className={styles.container}>
       <PageHeader title="编辑服务" onBack={() => navigate(`/services/${serviceId}`)} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
-          >
-            <FormField label="名称" htmlFor="service-name" required error={errors.name?.message}>
-              <Input id="service-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="描述"
-              htmlFor="service-description"
-              error={errors.description?.message}
-            >
-              <Textarea id="service-description" rows={4} {...register('description')} />
-            </FormField>
-            <FormField
-              label="Access Token 过期时间（秒）"
-              htmlFor="access-token-expiry"
-              required
-              error={errors.access_token_expires_in?.message}
-            >
-              <Input
-                id="access-token-expiry"
-                type="number"
-                min={1}
-                {...register('access_token_expires_in', { valueAsNumber: true })}
-              />
-            </FormField>
-            <FormField
-              label="Refresh Token 过期时间（秒）"
-              htmlFor="refresh-token-expiry"
-              required
-              error={errors.refresh_token_expires_in?.message}
-            >
-              <Input
-                id="refresh-token-expiry"
-                type="number"
-                min={1}
-                {...register('refresh_token_expires_in', { valueAsNumber: true })}
-              />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="保存"
-              onCancel={() => navigate(`/services/${serviceId}`)}
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField label="名称" htmlFor="service-name" required error={errors.name?.message}>
+            <Input id="service-name" {...register('name')} />
+          </FormField>
+          <FormField label="描述" htmlFor="service-description" error={errors.description?.message}>
+            <Input.TextArea id="service-description" rows={4} {...register('description')} />
+          </FormField>
+          <FormField label="Logo URL" htmlFor="service-logo" error={errors.logo_url?.message}>
+            <Input
+              id="service-logo"
+              type="url"
+              placeholder="https://example.com/logo.svg"
+              {...register('logo_url')}
             />
-          </form>
-        </CardContent>
+          </FormField>
+          <FormField
+            label="Access Token 过期时间（秒）"
+            htmlFor="access-token-expiry"
+            required
+            error={errors.access_token_expires_in?.message}
+          >
+            <Input
+              id="access-token-expiry"
+              type="number"
+              min={1}
+              {...register('access_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="保存"
+            onCancel={() => navigate(`/services/${serviceId}`)}
+          />
+        </form>
       </Card>
     </div>
   )

@@ -90,8 +90,8 @@
 .controls {
   display: grid;
   grid-template-columns:
-    minmax(130px, 0.7fr) minmax(120px, 0.55fr) minmax(180px, 1fr) minmax(220px, 1.25fr)
-    auto;
+    minmax(120px, 0.7fr) minmax(105px, 0.5fr) minmax(115px, 0.6fr) minmax(170px, 1fr)
+    minmax(210px, 1.2fr) auto;
   align-items: end;
   gap: 0.75rem;
   padding: 1rem;

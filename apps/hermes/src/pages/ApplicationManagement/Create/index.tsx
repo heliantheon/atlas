@@ -2,11 +2,7 @@ import { useRequest } from 'ahooks'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Switch } from '@atlas/ui/switch'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Switch, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -33,6 +29,9 @@ const schema = z.object({
   allowed_origins: uriText(validateAllowedOriginsMultiLine),
   allowed_logout_uris: uriText(validateLogoutUrisMultiLine),
   need_key: z.boolean(),
+  id_token_expires_in: z.number().int().positive('必须大于 0'),
+  refresh_token_expires_in: z.number().int().positive('必须大于 0'),
+  refresh_token_absolute_expires_in: z.number().int().nonnegative('不能小于 0'),
 })
 type Values = z.infer<typeof schema>
 const lines = (value: string) =>
@@ -59,18 +58,24 @@ export function Create() {
       allowed_origins: '',
       allowed_logout_uris: '',
       need_key: false,
+      id_token_expires_in: 3600,
+      refresh_token_expires_in: 604_800,
+      refresh_token_absolute_expires_in: 0,
     },
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
       await applicationApi.create(domainId!, {
-        app_id: values.app_id,
+        app_id: values.app_id || undefined,
         name: values.name,
         description: values.description,
         allowed_redirect_uris: lines(values.allowed_redirect_uris),
         allowed_origins: lines(values.allowed_origins),
         allowed_logout_uris: lines(values.allowed_logout_uris),
         need_key: values.need_key,
+        id_token_expires_in: values.id_token_expires_in,
+        refresh_token_expires_in: values.refresh_token_expires_in,
+        refresh_token_absolute_expires_in: values.refresh_token_absolute_expires_in,
       })
       toast.success('创建成功')
       navigate('/applications')
@@ -82,83 +87,117 @@ export function Create() {
     <div className={styles.container}>
       <PageHeader title="新建应用" onBack={() => navigate('/applications')} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField
+            label="应用标识"
+            htmlFor="app-id"
+            error={errors.app_id?.message}
+            description="可选；留空时由服务端生成"
           >
-            <FormField
-              label="应用标识"
-              htmlFor="app-id"
-              error={errors.app_id?.message}
-              description="可选；留空时由服务端生成"
-            >
-              <Input id="app-id" {...register('app_id')} />
-            </FormField>
-            <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
-              <Input id="app-name" {...register('name')} />
-            </FormField>
-            <FormField
-              label="描述"
-              htmlFor="app-description"
-              required
-              error={errors.description?.message}
-            >
-              <Textarea id="app-description" rows={3} {...register('description')} />
-            </FormField>
-            <FormField
-              label="重定向 URI（每行一个）"
-              htmlFor="redirect-uris"
-              error={errors.allowed_redirect_uris?.message}
-            >
-              <Textarea
-                id="redirect-uris"
-                rows={3}
-                placeholder="https://example.com/callback"
-                {...register('allowed_redirect_uris')}
-              />
-            </FormField>
-            <FormField
-              label="允许的来源 CORS（每行一个）"
-              htmlFor="allowed-origins"
-              error={errors.allowed_origins?.message}
-            >
-              <Textarea
-                id="allowed-origins"
-                rows={2}
-                placeholder="https://example.com"
-                {...register('allowed_origins')}
-              />
-            </FormField>
-            <FormField
-              label="登出后跳转 URI（每行一个）"
-              htmlFor="logout-uris"
-              error={errors.allowed_logout_uris?.message}
-            >
-              <Textarea
-                id="logout-uris"
-                rows={2}
-                placeholder="https://example.com"
-                {...register('allowed_logout_uris')}
-              />
-            </FormField>
-            <FormField label="需要密钥" htmlFor="need-key">
-              <Controller
-                control={control}
-                name="need_key"
-                render={({ field }) => (
-                  <Switch id="need-key" checked={field.value} onCheckedChange={field.onChange} />
-                )}
-              />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="创建"
-              onCancel={() => navigate('/applications')}
+            <Input id="app-id" {...register('app_id')} />
+          </FormField>
+          <FormField label="名称" htmlFor="app-name" required error={errors.name?.message}>
+            <Input id="app-name" {...register('name')} />
+          </FormField>
+          <FormField
+            label="描述"
+            htmlFor="app-description"
+            required
+            error={errors.description?.message}
+          >
+            <Input.TextArea id="app-description" rows={3} {...register('description')} />
+          </FormField>
+          <FormField
+            label="重定向 URI（每行一个）"
+            htmlFor="redirect-uris"
+            error={errors.allowed_redirect_uris?.message}
+          >
+            <Input.TextArea
+              id="redirect-uris"
+              rows={3}
+              placeholder="https://example.com/callback"
+              {...register('allowed_redirect_uris')}
             />
-          </form>
-        </CardContent>
+          </FormField>
+          <FormField
+            label="允许的来源 CORS（每行一个）"
+            htmlFor="allowed-origins"
+            error={errors.allowed_origins?.message}
+          >
+            <Input.TextArea
+              id="allowed-origins"
+              rows={2}
+              placeholder="https://example.com"
+              {...register('allowed_origins')}
+            />
+          </FormField>
+          <FormField
+            label="登出后跳转 URI（每行一个）"
+            htmlFor="logout-uris"
+            error={errors.allowed_logout_uris?.message}
+          >
+            <Input.TextArea
+              id="logout-uris"
+              rows={2}
+              placeholder="https://example.com"
+              {...register('allowed_logout_uris')}
+            />
+          </FormField>
+          <FormField label="需要密钥" htmlFor="need-key">
+            <Controller
+              control={control}
+              name="need_key"
+              render={({ field }) => (
+                <Switch id="need-key" checked={field.value} onChange={field.onChange} />
+              )}
+            />
+          </FormField>
+          <FormField
+            label="ID Token 有效期（秒）"
+            htmlFor="id-token-expiry"
+            required
+            error={errors.id_token_expires_in?.message}
+          >
+            <Input
+              id="id-token-expiry"
+              type="number"
+              min={1}
+              {...register('id_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="Refresh Token 有效期（秒）"
+            htmlFor="refresh-token-expiry"
+            required
+            error={errors.refresh_token_expires_in?.message}
+          >
+            <Input
+              id="refresh-token-expiry"
+              type="number"
+              min={1}
+              {...register('refresh_token_expires_in', { valueAsNumber: true })}
+            />
+          </FormField>
+          <FormField
+            label="Refresh Token 绝对有效期（秒）"
+            htmlFor="refresh-token-absolute-expiry"
+            required
+            error={errors.refresh_token_absolute_expires_in?.message}
+          >
+            <Input
+              id="refresh-token-absolute-expiry"
+              type="number"
+              min={0}
+              {...register('refresh_token_absolute_expires_in', { valueAsNumber: true })}
+            />
+            <span className="text-xs text-muted-foreground">0 表示不设绝对存活上限。</span>
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="创建"
+            onCancel={() => navigate('/applications')}
+          />
+        </form>
       </Card>
     </div>
   )

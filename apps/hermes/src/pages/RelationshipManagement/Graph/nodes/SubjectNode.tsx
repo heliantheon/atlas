@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
-import { Button } from '@atlas/ui/button'
+import { Button } from '@heliannuuthus/ui'
 import { User, Users, Boxes, Trash2 } from 'lucide-react'
 import { useGraphContext } from '../context/GraphContext'
 import styles from '../index.module.scss'

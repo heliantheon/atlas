@@ -40,21 +40,15 @@
 }
 
 .searchGroup {
+  display: grid;
+  grid-template-columns: 7rem minmax(14rem, 1fr);
+  gap: 8px;
   min-width: 350px;
 }
 
 .searchType {
   height: 100%;
-  width: 96px;
-  border: 0;
-  border-right: 1px solid var(--input);
-  border-radius: 8px 0 0 8px;
-  box-shadow: none;
-
-  &:focus-visible {
-    border-color: var(--input);
-    box-shadow: none;
-  }
+  width: 100%;
 }
 
 .listMeta {

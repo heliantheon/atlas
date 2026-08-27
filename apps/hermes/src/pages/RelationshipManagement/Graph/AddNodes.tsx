@@ -1,8 +1,6 @@
 import { useMemo, useState, type DragEvent, type ReactNode } from 'react'
 import { Boxes, Search, User, Users } from 'lucide-react'
-import { Badge } from '@atlas/ui/badge'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Input } from '@atlas/ui/input'
+import { Empty, Input, Tag } from '@heliannuuthus/ui'
 import type { Application, Group } from '@/types'
 import styles from './index.module.scss'
 
@@ -35,9 +33,9 @@ function EntitySection({
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring/35">
         {icon}
         <span>{title}</span>
-        <Badge variant="secondary" className="ml-auto">
+        <Tag type="info" className="ml-auto">
           {items.length}
-        </Badge>
+        </Tag>
       </summary>
       {items.length ? (
         <div className={styles.entityList}>
@@ -63,7 +61,7 @@ function EntitySection({
           ))}
         </div>
       ) : (
-        <EmptyState title="暂无数据" className="m-3 min-h-24 border-0 p-4" />
+        <Empty title="暂无数据" className="m-3 min-h-24 border-0 p-4" />
       )}
     </details>
   )

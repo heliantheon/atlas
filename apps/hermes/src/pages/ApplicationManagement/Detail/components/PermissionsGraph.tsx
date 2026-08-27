@@ -30,23 +30,12 @@ import {
   Server,
   X,
 } from 'lucide-react'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { Input } from '@atlas/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { toast } from '@atlas/ui/toast'
+import { Button, Dialog, Input, Select, Tag, toast } from '@heliannuuthus/ui'
 import { FormField } from '@/components/forms/FormField'
 import { useDomainId } from '@/contexts/DomainContext'
 import { serviceApi } from '@/services'
 import type { ApplicationServiceRelation, Service } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import styles from './PermissionsGraph.module.scss'
 
 interface AppNodeData {
@@ -141,7 +130,7 @@ function PermissionEdgeComponent(props: EdgeProps<PermissionEdgeData>) {
             className={`${styles.permissionEdgeLabel} ${props.data?.isPending ? styles.pending : ''}`}
           >
             {props.data?.relations.map(relation => (
-              <Badge key={relation} variant="secondary" className={styles.permissionTag}>
+              <Tag key={relation} type="info" className={styles.permissionTag}>
                 {relation}
                 <button
                   type="button"
@@ -151,7 +140,7 @@ function PermissionEdgeComponent(props: EdgeProps<PermissionEdgeData>) {
                 >
                   <X className="size-3" />
                 </button>
-              </Badge>
+              </Tag>
             ))}
           </div>
         </div>
@@ -214,78 +203,10 @@ function AddPermissionDialog({
       onOpenChange={next => {
         if (!next) close()
       }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>添加权限</DialogTitle>
-          <DialogDescription>选择服务并添加该服务授予应用的权限。</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-5">
-          <FormField label="服务" htmlFor="permission-service" required>
-            <Select value={serviceId || undefined} onValueChange={setServiceId}>
-              <SelectTrigger id="permission-service">
-                <SelectValue placeholder="选择服务" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map(service => (
-                  <SelectItem key={service.service_id} value={service.service_id}>
-                    {service.name || service.service_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="权限类型" htmlFor="permission-relation" required>
-            {custom ? (
-              <div className="flex gap-2">
-                <Input
-                  id="permission-relation"
-                  autoFocus
-                  value={relation}
-                  onChange={event => setRelation(event.target.value)}
-                  placeholder="自定义权限类型"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setCustom(false)
-                    setRelation('')
-                  }}
-                >
-                  选择预设
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                <Select value={relation || undefined} onValueChange={setRelation}>
-                  <SelectTrigger id="permission-relation">
-                    <SelectValue placeholder="选择权限类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RELATIONS.map(item => (
-                      <SelectItem key={item} value={item}>
-                        {item === '*' ? '*（全部权限）' : item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto justify-start p-0"
-                  onClick={() => {
-                    setCustom(true)
-                    setRelation('')
-                  }}
-                >
-                  使用自定义权限类型
-                </Button>
-              </div>
-            )}
-          </FormField>
-        </div>
-        <DialogFooter>
+      title="添加权限"
+      description="选择服务并添加该服务授予应用的权限。"
+      footer={
+        <>
           <Button type="button" variant="outline" onClick={close}>
             取消
           </Button>
@@ -304,8 +225,70 @@ function AddPermissionDialog({
           >
             添加
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </>
+      }
+    >
+      <div className="grid gap-5">
+        <FormField label="服务" htmlFor="permission-service" required>
+          <Select<string>
+            id="permission-service"
+            value={serviceId || null}
+            onChange={value => setServiceId(value ?? '')}
+            placeholder="选择服务"
+            options={services.map(service => ({
+              value: service.service_id,
+              label: service.name || service.service_id,
+            }))}
+          />
+        </FormField>
+        <FormField label="权限类型" htmlFor="permission-relation" required>
+          {custom ? (
+            <div className="flex gap-2">
+              <Input
+                id="permission-relation"
+                autoFocus
+                value={relation}
+                onChange={event => setRelation(event.target.value)}
+                placeholder="自定义权限类型"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setCustom(false)
+                  setRelation('')
+                }}
+              >
+                选择预设
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Select<string>
+                id="permission-relation"
+                value={relation || null}
+                onChange={value => setRelation(value ?? '')}
+                placeholder="选择权限类型"
+                options={RELATIONS.map(item => ({
+                  value: item,
+                  label: item === '*' ? '*（全部权限）' : item,
+                }))}
+              />
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto justify-start p-0"
+                onClick={() => {
+                  setCustom(true)
+                  setRelation('')
+                }}
+              >
+                使用自定义权限类型
+              </Button>
+            </div>
+          )}
+        </FormField>
+      </div>
     </Dialog>
   )
 }
@@ -343,12 +326,14 @@ function PermissionsGraphInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const isDirty = Boolean(pendingAdds.length || pendingDeletes.length)
 
-  const { data: serviceResponse } = useRequest(() => serviceApi.getList(domainId!), {
-    ready: Boolean(domainId && !suppliedServices),
-  })
+  const { data: serviceResponse } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+    { ready: Boolean(domainId && !suppliedServices) }
+  )
   const services = useMemo(
-    () => suppliedServices ?? serviceResponse?.items ?? [],
-    [serviceResponse?.items, suppliedServices]
+    () => suppliedServices ?? serviceResponse ?? [],
+    [serviceResponse, suppliedServices]
   )
   const serviceMap = useMemo(
     () => new Map(services.map(service => [service.service_id, service])),
@@ -482,7 +467,7 @@ function PermissionsGraphInner({
       <div className={styles.graphToolbar}>
         <div className={styles.toolbarLeft}>
           <strong className={styles.toolbarTitle}>权限关系图</strong>
-          <Badge variant="secondary">{mergedData.length} 个服务</Badge>
+          <Tag type="info">{mergedData.length} 个服务</Tag>
         </div>
         <div className={styles.toolbarRight}>
           <Button type="button" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>

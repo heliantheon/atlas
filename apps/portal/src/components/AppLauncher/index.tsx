@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Input, Modal } from 'antd'
-import { ArrowRightOutlined, SearchOutlined } from '@ant-design/icons'
+import { useMemo, useState } from 'react'
+import { Dialog, Empty, Input, Kbd } from '@heliannuuthus/ui'
+import { ArrowRight, Search } from 'lucide-react'
 import { launchTargets, openLaunchTarget, recordLaunchTarget } from '@/config/apps'
 import styles from './index.module.scss'
 
@@ -12,48 +12,37 @@ interface AppLauncherProps {
 export function AppLauncher({ open, onClose }: AppLauncherProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const resultRefs = useRef<Array<HTMLAnchorElement | null>>([])
-
   const results = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase()
-    if (!normalized) return launchTargets
-
+    const term = query.trim().toLowerCase()
+    if (!term) return launchTargets
     return launchTargets.filter(target =>
-      [target.name, target.description, ...target.keywords]
+      [target.name, target.appName, target.description, ...target.keywords]
         .join(' ')
-        .toLocaleLowerCase()
-        .includes(normalized)
+        .toLowerCase()
+        .includes(term)
     )
   }, [query])
 
-  useEffect(() => {
-    resultRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
-  }, [activeIndex])
-
-  const move = (offset: number) => {
-    if (!results.length) return
-    setActiveIndex(index => (index + offset + results.length) % results.length)
+  const close = () => {
+    setQuery('')
+    setActiveIndex(0)
+    onClose()
   }
 
   return (
-    <Modal
+    <Dialog
       open={open}
-      onCancel={onClose}
-      footer={null}
-      closable={false}
-      width={640}
-      className={styles.modal}
-      styles={{ body: { padding: 0 } }}
-      destroyOnHidden
-      afterClose={() => {
-        setQuery('')
-        setActiveIndex(0)
+      onOpenChange={value => {
+        if (!value) close()
       }}
+      title="前往系统或功能"
+      description="搜索 Atlas 中注册的管理入口。"
+      classNames={{ content: styles.dialog }}
     >
       <div className={styles.searchRow}>
-        <SearchOutlined aria-hidden="true" />
         <Input
           autoFocus
+          prefix={<Search aria-hidden="true" />}
           value={query}
           onChange={event => {
             setQuery(event.target.value)
@@ -62,85 +51,66 @@ export function AppLauncher({ open, onClose }: AppLauncherProps) {
           onKeyDown={event => {
             if (event.key === 'ArrowDown') {
               event.preventDefault()
-              move(1)
+              setActiveIndex(index => (results.length ? (index + 1) % results.length : 0))
             }
             if (event.key === 'ArrowUp') {
               event.preventDefault()
-              move(-1)
+              setActiveIndex(index =>
+                results.length ? (index - 1 + results.length) % results.length : 0
+              )
             }
             if (event.key === 'Enter' && results[activeIndex]) {
               event.preventDefault()
               openLaunchTarget(results[activeIndex])
             }
           }}
-          placeholder="搜索应用或功能…"
-          variant="borderless"
-          aria-label="搜索 Atlas 应用或功能"
-          aria-controls="atlas-launcher-results"
-          aria-activedescendant={
-            results[activeIndex] ? `launcher-${results[activeIndex].key}` : undefined
-          }
+          placeholder="例如：应用、日志、模板"
+          aria-label="搜索 Atlas 管理入口"
         />
-        <kbd>Esc</kbd>
+        <Kbd>Esc</Kbd>
       </div>
-
-      <div className={styles.results} id="atlas-launcher-results" role="listbox">
-        {results.length > 0 ? (
+      <div className={styles.results} role="listbox" aria-label="搜索结果">
+        {results.length === 0 ? (
+          <Empty title={`没有找到“${query}”`} description="尝试系统名称或具体管理功能。" />
+        ) : (
           results.map((target, index) => (
             <a
-              ref={element => {
-                resultRefs.current[index] = element
-              }}
               key={target.key}
-              id={`launcher-${target.key}`}
-              className={`${styles.result} ${index === activeIndex ? styles.active : ''}`}
               href={target.href}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => recordLaunchTarget(target)}
               role="option"
               aria-selected={index === activeIndex}
+              className={styles.result}
+              data-active={index === activeIndex}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => recordLaunchTarget(target)}
             >
-              {target.icon ? (
-                <span
-                  className={styles.resultIcon}
-                  style={{ color: target.color, background: target.tint }}
-                >
-                  {target.icon}
-                </span>
-              ) : (
-                <span
-                  className={styles.resultAccent}
-                  style={{ backgroundColor: target.color }}
-                  aria-hidden="true"
-                />
-              )}
-              <span className={styles.resultText}>
-                <span className={styles.resultName}>{target.name}</span>
-                <span className={styles.resultDescription}>{target.description}</span>
+              <span
+                className={styles.resultIcon}
+                style={{ color: target.color, background: target.tint }}
+              >
+                {target.icon ?? target.appName.slice(0, 1)}
               </span>
-              <span className={styles.resultApp}>{target.appName}</span>
-              <ArrowRightOutlined className={styles.resultArrow} aria-hidden="true" />
+              <span>
+                <strong>{target.name}</strong>
+                <small>
+                  {target.appName} · {target.description}
+                </small>
+              </span>
+              <ArrowRight aria-hidden="true" />
             </a>
           ))
-        ) : (
-          <div className={styles.empty} role="status">
-            <span>没有找到“{query}”</span>
-            <small>试试应用名，例如 Hermes，或功能名，例如文件管理。</small>
-          </div>
         )}
       </div>
-
-      <div className={styles.footer}>
-        <span className={styles.resultCount}>{results.length} 个入口</span>
+      <footer className={styles.footer}>
+        <span>{results.length} 个入口</span>
         <span>
-          <kbd>↑</kbd>
-          <kbd>↓</kbd> 选择
+          <Kbd>↑</Kbd>
+          <Kbd>↓</Kbd> 选择
         </span>
         <span>
-          <kbd>↵</kbd> 打开
+          <Kbd>↵</Kbd> 打开
         </span>
-        <span>目标将在当前标签页打开</span>
-      </div>
-    </Modal>
+      </footer>
+    </Dialog>
   )
 }

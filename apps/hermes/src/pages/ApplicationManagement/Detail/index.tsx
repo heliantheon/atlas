@@ -36,29 +36,24 @@ import {
   X,
 } from 'lucide-react'
 import { z } from 'zod'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Card, CardContent } from '@atlas/ui/card'
 import {
+  Alert,
+  Button,
+  Card,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Input } from '@atlas/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
-import { Spinner } from '@atlas/ui/spinner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@atlas/ui/tabs'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+  Empty,
+  Input,
+  Select,
+  Spinner,
+  Tabs,
+  Tag,
+  toast,
+} from '@heliannuuthus/ui'
 import { formatDateTime } from '@atlas/shared'
 import { FormField } from '@/components/forms/FormField'
 import { useAppNavigate, useDomainId } from '@/contexts/DomainContext'
 import { applicationApi, domainApi } from '@/services'
-import type { Application, ApplicationIDPConfig } from '@/types'
+import type { Application, ApplicationIDPConfig, ApplicationSecret } from '@/types'
 import {
   validateAllowedOriginsArray,
   validateLogoutUrisArray,
@@ -94,6 +89,7 @@ const settingsSchema = z
   .object({
     name: z.string().trim().min(1, '请输入应用名称').max(32, '名称不超过 32 个字符'),
     description: z.string(),
+    logo_url: z.string().trim().url('请输入完整的 Logo URL').or(z.literal('')),
     allowed_redirect_uris: z.array(z.string()),
     allowed_origins: z.array(z.string()),
     allowed_logout_uris: z.array(z.string()),
@@ -116,8 +112,7 @@ const idpSchema = z.object({
   type: z.string().min(1, '请选择身份源类型'),
   priority: z.number().int().min(0, '优先级不能小于 0'),
   strategy: z.string(),
-  delegate: z.string(),
-  require: z.string(),
+  t_app_id: z.string(),
 })
 
 type SettingsValues = z.infer<typeof settingsSchema>
@@ -140,12 +135,13 @@ function settingsFromApplication(data: Application): SettingsValues {
   return {
     name: data.name,
     description: data.description ?? '',
+    logo_url: data.logo_url ?? '',
     allowed_redirect_uris: parseUriArray(data.allowed_redirect_uris),
     allowed_origins: parseUriArray(data.allowed_origins),
     allowed_logout_uris: parseUriArray(data.allowed_logout_uris),
-    id_token_expires_in: data.id_token_expires_in || undefined,
-    refresh_token_expires_in: data.refresh_token_expires_in || undefined,
-    refresh_token_absolute_expires_in: data.refresh_token_absolute_expires_in || undefined,
+    id_token_expires_in: data.id_token_expires_in ?? undefined,
+    refresh_token_expires_in: data.refresh_token_expires_in ?? undefined,
+    refresh_token_absolute_expires_in: data.refresh_token_absolute_expires_in ?? undefined,
   }
 }
 
@@ -170,7 +166,7 @@ function UriTagsInput({
   return (
     <div className={styles.uriTagsInput}>
       {value.map(item => (
-        <Badge key={item} variant="secondary" className="gap-1 font-mono font-normal">
+        <Tag key={item} type="info" className="gap-1 font-mono font-normal">
           {item}
           <button
             type="button"
@@ -180,7 +176,7 @@ function UriTagsInput({
           >
             <X className="size-3" />
           </button>
-        </Badge>
+        </Tag>
       ))}
       <Input
         id={id}
@@ -234,26 +230,18 @@ function DurationInput({
           onChange(next === '' ? undefined : Math.max(0, Number(next)) * factor)
         }}
       />
-      <Select
+      <Select<(typeof DURATION_UNITS)[number]['value']>
         value={unit}
-        onValueChange={nextUnit => {
+        onChange={nextUnit => {
+          if (!nextUnit) return
           const nextFactor = DURATION_UNITS.find(item => item.value === nextUnit)?.factor ?? 1
           const visibleValue = value == null ? undefined : value / factor
-          setUnit(nextUnit as typeof unit)
+          setUnit(nextUnit)
           onChange(visibleValue == null ? undefined : visibleValue * nextFactor)
         }}
-      >
-        <SelectTrigger className="w-20">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {DURATION_UNITS.map(item => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        classNames={{ trigger: 'w-20' }}
+        options={DURATION_UNITS.map(item => ({ value: item.value, label: item.label }))}
+      />
     </div>
   )
 }
@@ -261,29 +249,27 @@ function DurationInput({
 function StatCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
   return (
     <Card className={styles.statCard}>
-      <CardContent>
-        <div className={styles.statHeader}>
-          <span className={styles.statLabel}>{label}</span>
-          <span className={styles.statIcon}>{icon}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <code className={styles.statValue}>{value}</code>
-          {label === '应用标识' || label === '域标识' ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`复制${label}`}
-              onClick={() => {
-                void navigator.clipboard.writeText(value)
-                toast.success(`${label}已复制`)
-              }}
-            >
-              <Copy />
-            </Button>
-          ) : null}
-        </div>
-      </CardContent>
+      <div className={styles.statHeader}>
+        <span className={styles.statLabel}>{label}</span>
+        <span className={styles.statIcon}>{icon}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <code className={styles.statValue}>{value}</code>
+        {label === '应用标识' || label === '域标识' ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`复制${label}`}
+            onClick={() => {
+              void navigator.clipboard.writeText(value)
+              toast.success(`${label}已复制`)
+            }}
+          >
+            <Copy />
+          </Button>
+        ) : null}
+      </div>
     </Card>
   )
 }
@@ -325,9 +311,9 @@ function SortableIdpCard({
         </span>
         <div className={styles.idpStrategy}>
           {(idp.strategy?.split(',').filter(Boolean) ?? ['通用']).map(strategy => (
-            <Badge key={strategy} variant="secondary">
+            <Tag key={strategy} type="info">
               {strategy}
-            </Badge>
+            </Tag>
           ))}
         </div>
       </div>
@@ -368,12 +354,15 @@ export function Detail() {
   const [saving, setSaving] = useState(false)
   const [savingIdp, setSavingIdp] = useState(false)
   const [sortingIdp, setSortingIdp] = useState(false)
+  const [loadingClientSecret, setLoadingClientSecret] = useState(false)
+  const [clientSecret, setClientSecret] = useState<ApplicationSecret | null>(null)
 
   const settingsForm = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       name: '',
       description: '',
+      logo_url: '',
       allowed_redirect_uris: [],
       allowed_origins: [],
       allowed_logout_uris: [],
@@ -381,16 +370,17 @@ export function Detail() {
   })
   const idpForm = useForm<IdpValues>({
     resolver: zodResolver(idpSchema),
-    defaultValues: { type: '', priority: 0, strategy: '', delegate: '', require: '' },
+    defaultValues: { type: '', priority: 0, strategy: '', t_app_id: '' },
   })
 
-  const { data, loading, refresh } = useRequest(() => applicationApi.getDetail(domainId!, appId!), {
-    ready: Boolean(domainId && appId),
-    onError: () => toast.error('获取应用信息失败'),
-  })
+  const { data, loading, error, refresh } = useRequest(
+    () => applicationApi.getDetail(domainId!, appId!),
+    { ready: Boolean(domainId && appId) }
+  )
   const {
     data: serviceRelations,
     loading: relationsLoading,
+    error: relationsError,
     refresh: refreshRelations,
   } = useRequest(() => applicationApi.getServiceRelations(domainId!, appId!), {
     ready: Boolean(domainId && appId && activeTab === 'relations'),
@@ -398,11 +388,12 @@ export function Detail() {
   const {
     data: idpConfigs,
     loading: idpLoading,
+    error: idpError,
     refresh: refreshIdpConfigs,
   } = useRequest(() => applicationApi.getIDPConfigs(domainId!, appId!), {
     ready: Boolean(domainId && appId && activeTab === 'auth'),
   })
-  const { data: domainIdps } = useRequest(() => domainApi.getIDPs(domainId!), {
+  const { data: domainIdps } = useRequest(() => domainApi.getIDPConfigs(domainId!), {
     ready: Boolean(domainId && idpOpen),
   })
 
@@ -426,7 +417,8 @@ export function Detail() {
     try {
       await applicationApi.update(domainId!, appId!, {
         ...values,
-        description: values.description.trim() || undefined,
+        description: values.description.trim() || null,
+        logo_url: values.logo_url.trim() || null,
         allowed_redirect_uris: values.allowed_redirect_uris
           .map(item => item.trim())
           .filter(Boolean),
@@ -444,7 +436,7 @@ export function Detail() {
 
   const openCreateIdp = () => {
     setEditingIdp(null)
-    idpForm.reset({ type: '', priority: 0, strategy: '', delegate: '', require: '' })
+    idpForm.reset({ type: '', priority: 0, strategy: '', t_app_id: '' })
     setIdpOpen(true)
   }
   const openEditIdp = (idp: ApplicationIDPConfig) => {
@@ -453,24 +445,27 @@ export function Detail() {
       type: idp.type,
       priority: idp.priority,
       strategy: idp.strategy ?? '',
-      delegate: idp.delegate ?? '',
-      require: idp.require ?? '',
+      t_app_id: idp.t_app_id ?? '',
     })
     setIdpOpen(true)
   }
   const saveIdp = idpForm.handleSubmit(async values => {
     setSavingIdp(true)
-    const payload = {
-      priority: values.priority,
-      strategy: values.strategy.trim() || undefined,
-      delegate: values.delegate.trim() || undefined,
-      require: values.require.trim() || undefined,
-    }
     try {
-      if (editingIdp)
-        await applicationApi.updateIDPConfig(domainId!, appId!, editingIdp.type, payload)
-      else
-        await applicationApi.createIDPConfig(domainId!, appId!, { type: values.type, ...payload })
+      if (editingIdp) {
+        await applicationApi.updateIDPConfig(domainId!, appId!, editingIdp.type, {
+          priority: values.priority,
+          strategy: values.strategy.trim() || null,
+          t_app_id: values.t_app_id.trim() || null,
+        })
+      } else {
+        await applicationApi.createIDPConfig(domainId!, appId!, {
+          type: values.type,
+          priority: values.priority,
+          strategy: values.strategy.trim() || undefined,
+          t_app_id: values.t_app_id.trim() || undefined,
+        })
+      }
       await refreshIdpConfigs()
       setIdpOpen(false)
       toast.success(editingIdp ? '身份源已更新' : '身份源已添加')
@@ -480,6 +475,26 @@ export function Detail() {
       setSavingIdp(false)
     }
   })
+
+  const revealClientSecret = async () => {
+    setLoadingClientSecret(true)
+    try {
+      setClientSecret(await applicationApi.getSecret(domainId!, appId!))
+    } catch {
+      toast.error('无法获取客户端凭据，请确认应用创建时启用了密钥')
+    } finally {
+      setLoadingClientSecret(false)
+    }
+  }
+
+  const copyCredential = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(`${label}已复制`)
+    } catch {
+      toast.error(`复制${label}失败`)
+    }
+  }
 
   const deleteIdp = async () => {
     if (!pendingDelete) return
@@ -526,14 +541,20 @@ export function Detail() {
         <Spinner className="size-7" />
       </div>
     )
-  if (!data)
+  if (error || !data)
     return (
-      <EmptyState
-        title="应用不存在"
-        action={
-          <Button type="button" onClick={() => navigate('/applications')}>
-            返回应用列表
-          </Button>
+      <Empty
+        title="无法读取应用"
+        description="该应用不存在，或 Hermes 管理接口暂时不可用。"
+        actions={
+          <div className="flex gap-2">
+            <Button type="button" onClick={refresh}>
+              重试
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate('/applications')}>
+              返回列表
+            </Button>
+          </div>
         }
       />
     )
@@ -569,7 +590,7 @@ export function Detail() {
     {
       name: 'refresh_token_absolute_expires_in',
       label: 'Refresh Token 绝对有效期',
-      description: '刷新令牌最长存活时间。',
+      description: '刷新令牌最长存活时间；0 表示不设绝对上限。',
     },
   ] as const
 
@@ -623,64 +644,82 @@ export function Detail() {
       </div>
 
       <Card className={styles.mainContent}>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid h-auto w-full grid-cols-4 sm:w-fit">
-              <TabsTrigger value="basic">基本信息</TabsTrigger>
-              <TabsTrigger value="config">配置信息</TabsTrigger>
-              <TabsTrigger value="auth">认证方式</TabsTrigger>
-              <TabsTrigger value="relations">关联关系</TabsTrigger>
-            </TabsList>
-            <TabsContent value="basic">
-              <div className={`${styles.tabContent} grid gap-5 py-5`}>
-                <FormField
-                  label="应用名称"
-                  htmlFor="application-name"
-                  required
-                  error={settingsForm.formState.errors.name?.message}
-                >
-                  <Input id="application-name" maxLength={32} {...settingsForm.register('name')} />
-                </FormField>
-                <FormField
-                  label="描述"
-                  htmlFor="application-description"
-                  error={settingsForm.formState.errors.description?.message}
-                >
-                  <Textarea
-                    id="application-description"
-                    rows={4}
-                    {...settingsForm.register('description')}
-                  />
-                </FormField>
-              </div>
-            </TabsContent>
-            <TabsContent value="config">
-              <div className={`${styles.tabContent} grid gap-6 py-5`}>
-                {uriFields.map(field => (
-                  <Controller
-                    key={field.name}
-                    name={field.name}
-                    control={settingsForm.control}
-                    render={({ field: controlField, fieldState }) => (
-                      <FormField
-                        label={field.label}
-                        htmlFor={field.name}
-                        description={field.description}
-                        error={fieldState.error?.message}
-                      >
-                        <UriTagsInput
-                          id={field.name}
-                          value={controlField.value}
-                          onChange={controlField.onChange}
-                          placeholder="输入地址后按回车"
-                        />
-                      </FormField>
-                    )}
-                  />
-                ))}
-                <div className={styles.sectionDivider} />
-                <div className="grid gap-5">
-                  {durationFields.map(field => (
+        <Tabs
+          value={activeTab}
+          onChange={value => value && setActiveTab(value)}
+          items={[
+            {
+              value: 'basic',
+              label: '基本信息',
+              content: (
+                <div className={`${styles.tabContent} grid gap-5 py-5`}>
+                  <FormField
+                    label="应用名称"
+                    htmlFor="application-name"
+                    required
+                    error={settingsForm.formState.errors.name?.message}
+                  >
+                    <Input
+                      id="application-name"
+                      maxLength={32}
+                      {...settingsForm.register('name')}
+                    />
+                  </FormField>
+                  <FormField
+                    label="描述"
+                    htmlFor="application-description"
+                    error={settingsForm.formState.errors.description?.message}
+                  >
+                    <Input.TextArea
+                      id="application-description"
+                      rows={4}
+                      {...settingsForm.register('description')}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Logo URL"
+                    htmlFor="application-logo"
+                    error={settingsForm.formState.errors.logo_url?.message}
+                    description="用于应用目录、详情页和权限图谱中的品牌标识。留空可清除。"
+                  >
+                    <Input
+                      id="application-logo"
+                      type="url"
+                      placeholder="https://example.com/logo.svg"
+                      {...settingsForm.register('logo_url')}
+                    />
+                  </FormField>
+                </div>
+              ),
+            },
+            {
+              value: 'config',
+              label: '配置信息',
+              content: (
+                <div className={`${styles.tabContent} grid gap-6 py-5`}>
+                  <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <div className="grid gap-1">
+                      <h2 className="text-sm font-medium">OAuth 客户端凭据</h2>
+                      <p className="text-sm text-muted-foreground">
+                        按需读取派生的 client secret。关闭弹窗后页面不会保留明文。
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={loadingClientSecret}
+                      onClick={() => void revealClientSecret()}
+                    >
+                      {loadingClientSecret ? (
+                        <LoaderCircle className="animate-spin" />
+                      ) : (
+                        <KeyRound />
+                      )}
+                      获取 Secret
+                    </Button>
+                  </div>
+                  <div className={styles.sectionDivider} />
+                  {uriFields.map(field => (
                     <Controller
                       key={field.name}
                       name={field.name}
@@ -692,77 +731,159 @@ export function Detail() {
                           description={field.description}
                           error={fieldState.error?.message}
                         >
-                          <DurationInput
+                          <UriTagsInput
                             id={field.name}
                             value={controlField.value}
                             onChange={controlField.onChange}
+                            placeholder="输入地址后按回车"
                           />
                         </FormField>
                       )}
                     />
                   ))}
+                  <div className={styles.sectionDivider} />
+                  <div className="grid gap-5">
+                    {durationFields.map(field => (
+                      <Controller
+                        key={field.name}
+                        name={field.name}
+                        control={settingsForm.control}
+                        render={({ field: controlField, fieldState }) => (
+                          <FormField
+                            label={field.label}
+                            htmlFor={field.name}
+                            description={field.description}
+                            error={fieldState.error?.message}
+                          >
+                            <DurationInput
+                              id={field.name}
+                              value={controlField.value}
+                              onChange={controlField.onChange}
+                            />
+                          </FormField>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              value: 'auth',
+              label: '认证方式',
+              content: (
+                <div className={`${styles.tabContent} py-5`}>
+                  {idpError ? (
+                    <Alert
+                      variant="error"
+                      title="应用身份源加载失败"
+                      action={<Button onClick={refreshIdpConfigs}>重试</Button>}
+                    />
+                  ) : idpLoading || sortingIdp ? (
+                    <div className="flex min-h-40 items-center justify-center">
+                      <Spinner />
+                    </div>
+                  ) : !idpConfigs?.length ? (
+                    <Empty
+                      title="尚未配置身份源"
+                      description="添加后，应用即可使用该身份源完成认证。"
+                      actions={
+                        <Button type="button" onClick={openCreateIdp}>
+                          <Plus />
+                          添加身份源
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <>
+                      <p className={styles.idpListHint}>拖动手柄可调整身份源的优先级。</p>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={idpConfigs.map(item => item.type)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className={styles.idpList}>
+                            {idpConfigs.map(idp => (
+                              <SortableIdpCard
+                                key={idp.type}
+                                idp={idp}
+                                onEdit={openEditIdp}
+                                onDelete={setPendingDelete}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    </>
+                  )}
+                </div>
+              ),
+            },
+            {
+              value: 'relations',
+              label: '关联关系',
+              content: (
+                <ServicePermissionsView
+                  appId={appId!}
+                  appName={data.name}
+                  appLogoUrl={data.logo_url}
+                  data={serviceRelations ?? []}
+                  loading={relationsLoading}
+                  error={relationsError}
+                  onRetry={refreshRelations}
+                  onNavigateToService={id => navigate(`/services/${id}`)}
+                  onRelationsChange={refreshRelations}
+                />
+              ),
+            },
+          ]}
+        />
+      </Card>
+
+      <Dialog
+        open={clientSecret !== null}
+        onOpenChange={open => {
+          if (!open) setClientSecret(null)
+        }}
+        title="OAuth 客户端凭据"
+        description="请保存到目标服务的 Secret 配置中。Atlas 不会持久化这份明文。"
+        footer={
+          <Button type="button" onClick={() => setClientSecret(null)}>
+            完成
+          </Button>
+        }
+      >
+        {clientSecret ? (
+          <div className="grid gap-4">
+            {(
+              [
+                ['Client ID', clientSecret.client_id],
+                ['Client Secret', clientSecret.secret],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="grid gap-2">
+                <span className="text-sm font-medium">{label}</span>
+                <div className="flex gap-2">
+                  <Input value={value} readOnly className="font-mono" aria-label={label} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`复制 ${label}`}
+                    onClick={() => void copyCredential(label, value)}
+                  >
+                    <Copy />
+                  </Button>
                 </div>
               </div>
-            </TabsContent>
-            <TabsContent value="auth">
-              <div className={`${styles.tabContent} py-5`}>
-                {idpLoading || sortingIdp ? (
-                  <div className="flex min-h-40 items-center justify-center">
-                    <Spinner />
-                  </div>
-                ) : !idpConfigs?.length ? (
-                  <EmptyState
-                    title="尚未配置身份源"
-                    description="添加后，应用即可使用该身份源完成认证。"
-                    action={
-                      <Button type="button" onClick={openCreateIdp}>
-                        <Plus />
-                        添加身份源
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <>
-                    <p className={styles.idpListHint}>拖动手柄可调整身份源的优先级。</p>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={idpConfigs.map(item => item.type)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className={styles.idpList}>
-                          {idpConfigs.map(idp => (
-                            <SortableIdpCard
-                              key={idp.type}
-                              idp={idp}
-                              onEdit={openEditIdp}
-                              onDelete={setPendingDelete}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  </>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="relations">
-              <ServicePermissionsView
-                appId={appId!}
-                appName={data.name}
-                appLogoUrl={data.logo_url}
-                data={serviceRelations ?? []}
-                loading={relationsLoading}
-                onNavigateToService={id => navigate(`/services/${id}`)}
-                onRelationsChange={refreshRelations}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            ))}
+          </div>
+        ) : null}
+      </Dialog>
 
       <Dialog
         open={idpOpen}
@@ -770,106 +891,86 @@ export function Detail() {
           setIdpOpen(open)
           if (!open) setEditingIdp(null)
         }}
+        title={editingIdp ? '编辑身份源' : '添加身份源'}
+        description="身份源由域统一提供，优先级数值越大越优先。"
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingIdp ? '编辑身份源' : '添加身份源'}</DialogTitle>
-            <DialogDescription>身份源由域统一提供，优先级数值越大越优先。</DialogDescription>
-          </DialogHeader>
-          <form className="grid gap-5" onSubmit={saveIdp} noValidate>
-            <Controller
-              name="type"
-              control={idpForm.control}
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="身份源类型"
-                  htmlFor="idp-type"
-                  required
-                  error={fieldState.error?.message}
-                >
-                  <Select
-                    value={field.value || undefined}
-                    onValueChange={field.onChange}
-                    disabled={Boolean(editingIdp)}
-                  >
-                    <SelectTrigger id="idp-type">
-                      <SelectValue placeholder="选择身份源类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableIdpTypes.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {IDP_TYPE_LABELS[type] ?? type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              )}
+        <form className="grid gap-5" onSubmit={saveIdp} noValidate>
+          <Controller
+            name="type"
+            control={idpForm.control}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="身份源类型"
+                htmlFor="idp-type"
+                required
+                error={fieldState.error?.message}
+              >
+                <Select<string>
+                  id="idp-type"
+                  value={field.value || null}
+                  onChange={value => field.onChange(value ?? '')}
+                  disabled={Boolean(editingIdp)}
+                  placeholder="选择身份源类型"
+                  options={availableIdpTypes.map(type => ({
+                    value: type,
+                    label: IDP_TYPE_LABELS[type] ?? type,
+                  }))}
+                />
+              </FormField>
+            )}
+          />
+          <Controller
+            name="priority"
+            control={idpForm.control}
+            render={({ field, fieldState }) => (
+              <FormField label="优先级" htmlFor="idp-priority" error={fieldState.error?.message}>
+                <Input
+                  id="idp-priority"
+                  type="number"
+                  min={0}
+                  value={field.value}
+                  onChange={event => field.onChange(Number(event.target.value))}
+                />
+              </FormField>
+            )}
+          />
+          <FormField
+            label="策略"
+            htmlFor="idp-strategy"
+            error={idpForm.formState.errors.strategy?.message}
+          >
+            <Input id="idp-strategy" placeholder="如：password" {...idpForm.register('strategy')} />
+          </FormField>
+          <FormField
+            label="第三方应用 ID"
+            htmlFor="idp-t-app-id"
+            error={idpForm.formState.errors.t_app_id?.message}
+          >
+            <Input
+              id="idp-t-app-id"
+              placeholder="留空时使用域级配置"
+              {...idpForm.register('t_app_id')}
             />
-            <Controller
-              name="priority"
-              control={idpForm.control}
-              render={({ field, fieldState }) => (
-                <FormField label="优先级" htmlFor="idp-priority" error={fieldState.error?.message}>
-                  <Input
-                    id="idp-priority"
-                    type="number"
-                    min={0}
-                    value={field.value}
-                    onChange={event => field.onChange(Number(event.target.value))}
-                  />
-                </FormField>
-              )}
-            />
-            <FormField
-              label="策略"
-              htmlFor="idp-strategy"
-              error={idpForm.formState.errors.strategy?.message}
-            >
-              <Input
-                id="idp-strategy"
-                placeholder="如：password"
-                {...idpForm.register('strategy')}
-              />
-            </FormField>
-            <FormField
-              label="委托"
-              htmlFor="idp-delegate"
-              error={idpForm.formState.errors.delegate?.message}
-            >
-              <Input id="idp-delegate" placeholder="可选" {...idpForm.register('delegate')} />
-            </FormField>
-            <FormField
-              label="必需条件"
-              htmlFor="idp-require"
-              error={idpForm.formState.errors.require?.message}
-            >
-              <Input id="idp-require" placeholder="可选" {...idpForm.register('require')} />
-            </FormField>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIdpOpen(false)}>
-                取消
-              </Button>
-              <Button type="submit" disabled={savingIdp}>
-                {savingIdp ? <LoaderCircle className="animate-spin" /> : null}
-                {editingIdp ? '保存' : '添加'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+          </FormField>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setIdpOpen(false)}>
+              取消
+            </Button>
+            <Button type="submit" disabled={savingIdp}>
+              {savingIdp ? <LoaderCircle className="animate-spin" /> : null}
+              {editingIdp ? '保存' : '添加'}
+            </Button>
+          </div>
+        </form>
       </Dialog>
 
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除身份源</DialogTitle>
-            <DialogDescription>
-              确定删除“
-              {pendingDelete ? (IDP_TYPE_LABELS[pendingDelete.type] ?? pendingDelete.type) : ''}
-              ”配置？
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除身份源"
+        description={`确定删除“${pendingDelete ? (IDP_TYPE_LABELS[pendingDelete.type] ?? pendingDelete.type) : ''}”配置？`}
+        footer={
+          <>
             <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               取消
             </Button>
@@ -881,9 +982,9 @@ export function Detail() {
             >
               {savingIdp ? <LoaderCircle className="animate-spin" /> : <Trash2 />}删除
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </div>
   )
 }

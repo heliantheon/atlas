@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Spinner } from '@atlas/ui/spinner'
+import { Routes, Route } from 'react-router-dom'
+import { Spinner } from '@heliannuuthus/ui'
 import { List } from './List'
+import { Create } from './Create'
 import { Detail } from './Detail'
 import { Edit } from './Edit'
 
@@ -15,7 +16,7 @@ export function ServiceManagement() {
   return (
     <Routes>
       <Route index element={<List />} />
-      <Route path="create" element={<Navigate to=".." state={{ openCreate: true }} replace />} />
+      <Route path="create" element={<Create />} />
       <Route path=":serviceId" element={<Detail />} />
       <Route path=":serviceId/edit" element={<Edit />} />
       <Route

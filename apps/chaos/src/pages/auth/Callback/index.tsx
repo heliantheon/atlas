@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { Spin, Button, Result } from 'antd'
-import { HomeOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Button, Spinner } from '@heliannuuthus/ui'
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
 import { useAuthCallback } from '@atlas/shared'
 import styles from './index.module.scss'
 
@@ -10,34 +10,30 @@ export function AuthCallback() {
 
   if (processing) {
     return (
-      <div className={styles.container}>
-        <Spin size="large" tip="正在完成登录..." />
-      </div>
+      <main className={styles.container}>
+        <Spinner size="lg" />
+        <h1>正在完成登录</h1>
+        <p>正在验证授权结果，请不要关闭页面。</p>
+      </main>
     )
   }
-
   if (!error) return null
 
   return (
-    <div className={styles.container}>
-      <Result
-        status="error"
-        title="登录失败"
-        subTitle={error}
-        extra={[
-          <Button
-            type="primary"
-            icon={<HomeOutlined />}
-            onClick={() => navigate('/', { replace: true })}
-            key="home"
-          >
-            返回首页
-          </Button>,
-          <Button icon={<ReloadOutlined />} onClick={() => window.location.reload()} key="retry">
-            重试
-          </Button>,
-        ]}
-      />
-    </div>
+    <main className={styles.container}>
+      <span className={styles.errorIcon}>
+        <AlertTriangle aria-hidden="true" />
+      </span>
+      <h1>登录没有完成</h1>
+      <p>{error}</p>
+      <div className={styles.actions}>
+        <Button onClick={() => navigate('/', { replace: true })}>
+          <Home aria-hidden="true" /> 返回首页
+        </Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          <RefreshCw aria-hidden="true" /> 重试
+        </Button>
+      </div>
+    </main>
   )
 }

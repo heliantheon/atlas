@@ -1,7 +1,5 @@
 import { ArrowLeft, CircleCheck, Clock, Database, Search, ScrollText } from 'lucide-react'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Input } from '@atlas/ui/input'
+import { Button, Input, Tag } from '@heliannuuthus/ui'
 import { useAppNavigate } from '@/contexts/DomainContext'
 import styles from './index.module.scss'
 
@@ -39,10 +37,10 @@ export function CapabilityPreview({ capability }: { capability: Capability }) {
           <h1>{content.title}</h1>
           <p>{content.description}</p>
         </div>
-        <Badge variant="secondary" className={styles.statusTag}>
+        <Tag type="warning" className={styles.statusTag}>
           <Clock />
           接口接入中
-        </Badge>
+        </Tag>
       </section>
       <section className={styles.workspace}>
         <div className={styles.searchPanel}>

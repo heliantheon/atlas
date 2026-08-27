@@ -1,10 +1,6 @@
 import { lazy, memo, Suspense, useMemo, useState } from 'react'
 import { Network, Table2 } from 'lucide-react'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { EmptyState } from '@atlas/ui/empty-state'
-import { Spinner } from '@atlas/ui/spinner'
-import { DataTable, type DataTableColumn } from '@atlas/ui/table'
+import { Alert, Button, Empty, Spinner, Table, Tag } from '@heliannuuthus/ui'
 import type { ApplicationServiceRelation } from '@/types'
 import styles from '../index.module.scss'
 
@@ -14,6 +10,8 @@ export interface ServicePermissionsViewProps {
   appLogoUrl?: string
   data: ApplicationServiceRelation[]
   loading?: boolean
+  error?: Error
+  onRetry?: () => void
   onNavigateToService?: (serviceId: string) => void
   onRelationsChange?: () => void
 }
@@ -27,17 +25,19 @@ export const ServicePermissionsView = memo(function ServicePermissionsView({
   appLogoUrl,
   data,
   loading,
+  error,
+  onRetry,
   onNavigateToService,
   onRelationsChange,
 }: ServicePermissionsViewProps) {
   const [view, setView] = useState<'table' | 'graph'>('table')
-  const columns = useMemo<DataTableColumn<ApplicationServiceRelation>[]>(
+  const columns = useMemo<Table.Column<ApplicationServiceRelation>[]>(
     () => [
       {
         key: 'service_id',
         header: '服务',
         width: 190,
-        render: relation =>
+        render: (_value, relation) =>
           onNavigateToService ? (
             <button
               className="text-primary hover:underline"
@@ -52,10 +52,12 @@ export const ServicePermissionsView = memo(function ServicePermissionsView({
       {
         key: 'relations',
         header: '授予的权限',
-        render: relation => (
+        render: (_value, relation) => (
           <div className="flex flex-wrap gap-1">
             {relation.relations.map(value => (
-              <Badge key={value}>{value}</Badge>
+              <Tag key={value} type="primary">
+                {value}
+              </Tag>
             ))}
           </div>
         ),
@@ -85,15 +87,21 @@ export const ServicePermissionsView = memo(function ServicePermissionsView({
           </Button>
         </div>
       </div>
-      {view === 'table' ? (
+      {error ? (
+        <Alert
+          variant="error"
+          title="服务授权加载失败"
+          action={onRetry ? <Button onClick={onRetry}>重试</Button> : undefined}
+        />
+      ) : view === 'table' ? (
         loading ? (
           <div className="flex min-h-40 items-center justify-center">
             <Spinner />
           </div>
         ) : data.length ? (
-          <DataTable columns={columns} data={data} rowKey="service_id" />
+          <Table columns={columns} data={data} rowKey="service_id" pagination={false} />
         ) : (
-          <EmptyState title="暂无服务授予的权限" />
+          <Empty title="暂无服务授予的权限" />
         )
       ) : (
         <Suspense

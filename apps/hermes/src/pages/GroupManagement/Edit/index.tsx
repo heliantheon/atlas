@@ -3,11 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Card, CardContent } from '@atlas/ui/card'
-import { Input } from '@atlas/ui/input'
-import { Spinner } from '@atlas/ui/spinner'
-import { Textarea } from '@atlas/ui/textarea'
-import { toast } from '@atlas/ui/toast'
+import { Card, Input, Spinner, toast } from '@heliannuuthus/ui'
 import { PageHeader } from '@atlas/shared'
 import { FormActions } from '@/components/forms/FormActions'
 import { FormField } from '@/components/forms/FormField'
@@ -40,7 +36,10 @@ export function Edit() {
   })
   const { run: submit, loading } = useRequest(
     async (values: Values) => {
-      await groupApi.update(groupId!, values)
+      await groupApi.update(groupId!, {
+        name: values.name,
+        description: values.description?.trim() || null,
+      })
       toast.success('更新成功')
       navigate(`/groups/${groupId}`)
     },
@@ -57,25 +56,19 @@ export function Edit() {
     <div className={styles.container}>
       <PageHeader title="编辑组" onBack={() => navigate(`/groups/${groupId}`)} />
       <Card>
-        <CardContent>
-          <form
-            onSubmit={handleSubmit(values => submit(values))}
-            className={styles.form}
-            noValidate
-          >
-            <FormField label="名称" htmlFor="group-name" required error={errors.name?.message}>
-              <Input id="group-name" {...register('name')} />
-            </FormField>
-            <FormField label="描述" htmlFor="group-description" error={errors.description?.message}>
-              <Textarea id="group-description" rows={4} {...register('description')} />
-            </FormField>
-            <FormActions
-              submitting={loading}
-              submitText="保存"
-              onCancel={() => navigate(`/groups/${groupId}`)}
-            />
-          </form>
-        </CardContent>
+        <form onSubmit={handleSubmit(values => submit(values))} className={styles.form} noValidate>
+          <FormField label="名称" htmlFor="group-name" required error={errors.name?.message}>
+            <Input id="group-name" {...register('name')} />
+          </FormField>
+          <FormField label="描述" htmlFor="group-description" error={errors.description?.message}>
+            <Input.TextArea id="group-description" rows={4} {...register('description')} />
+          </FormField>
+          <FormActions
+            submitting={loading}
+            submitText="保存"
+            onCancel={() => navigate(`/groups/${groupId}`)}
+          />
+        </form>
       </Card>
     </div>
   )

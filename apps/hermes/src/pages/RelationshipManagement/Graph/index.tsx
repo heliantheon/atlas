@@ -16,23 +16,12 @@ import ReactFlow, {
   type EdgeTypes,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Button } from '@atlas/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@atlas/ui/card'
-import { DataTable, type DataTableColumn } from '@atlas/ui/table'
-import { Spinner } from '@atlas/ui/spinner'
-import { toast } from '@atlas/ui/toast'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
+import { Alert, Button, Card, Dialog, Spinner, Table, toast } from '@heliannuuthus/ui'
 import { Trash2 } from 'lucide-react'
 import { serviceApi, applicationApi, groupApi, relationshipApi } from '@/services'
 import { useDomainId } from '@/contexts/DomainContext'
 import type { Relationship } from '@/types'
+import { collectCursorPages } from '@/utils/pagination'
 import { formatDateTime, isExpiringSoon } from '@atlas/shared'
 import { GraphContextProvider, useGraphContext } from './context/GraphContext'
 import { SubjectNode, type SubjectNodeData } from './nodes/SubjectNode'
@@ -95,27 +84,68 @@ function GraphCanvas() {
 
   const domainId = useDomainId()
 
-  const { data: services, loading: servicesLoading } = useRequest(
-    () => serviceApi.getList(domainId!),
-    { ready: !!domainId }
+  const {
+    data: services,
+    loading: servicesLoading,
+    error: servicesError,
+    refresh: refreshServices,
+  } = useRequest(
+    () =>
+      collectCursorPages(token => serviceApi.getList(domainId!, undefined, { token, size: 100 })),
+    { ready: !!domainId, refreshDeps: [domainId] }
   )
 
-  const { data: applications, loading: applicationsLoading } = useRequest(
-    () => applicationApi.getList(domainId!),
-    { ready: !!domainId }
+  useEffect(() => {
+    if (
+      !urlServiceId &&
+      selectedServiceId &&
+      services &&
+      !services.some(service => service.service_id === selectedServiceId)
+    ) {
+      setSelectedServiceId('')
+    }
+  }, [selectedServiceId, services, setSelectedServiceId, urlServiceId])
+
+  const {
+    data: applications,
+    loading: applicationsLoading,
+    error: applicationsError,
+    refresh: refreshApplications,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        applicationApi.getList(domainId!, undefined, { token, size: 100 })
+      ),
+    { ready: !!domainId, refreshDeps: [domainId] }
   )
 
-  const { data: groups, loading: groupsLoading } = useRequest(() => groupApi.getList())
+  const {
+    data: groups,
+    loading: groupsLoading,
+    error: groupsError,
+    refresh: refreshGroups,
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        groupApi.getList({ service_id: selectedServiceId }, { token, size: 100 })
+      ),
+    { ready: Boolean(selectedServiceId), refreshDeps: [selectedServiceId] }
+  )
 
   const {
     data: relationships,
     loading: relationshipsLoading,
+    error: relationshipsError,
     refresh: refreshRelationships,
-  } = useRequest(() => relationshipApi.getList({ service_id: selectedServiceId }), {
-    refreshDeps: [selectedServiceId],
-  })
+  } = useRequest(
+    () =>
+      collectCursorPages(token =>
+        relationshipApi.getList({ service_id: selectedServiceId }, { token, size: 100 })
+      ),
+    { ready: Boolean(selectedServiceId), refreshDeps: [selectedServiceId] }
+  )
 
-  const relationshipItems = useMemo(() => relationships?.items ?? [], [relationships])
+  const relationshipItems = useMemo(() => relationships ?? [], [relationships])
 
   const users = useMemo(() => {
     if (!relationshipItems.length) return []
@@ -128,7 +158,11 @@ function GraphCanvas() {
 
   // 从关系数据构建节点和边
   useEffect(() => {
-    if (!relationshipItems.length) return
+    if (!relationshipItems.length) {
+      setNodes([])
+      setEdges([])
+      return
+    }
 
     const nodeMap = new Map<string, Node>()
     const newEdges: Edge[] = []
@@ -359,33 +393,45 @@ function GraphCanvas() {
         })
         toast.success('删除成功')
         refreshRelationships()
+        return true
       } catch {
         toast.error('删除失败')
+        return false
       }
     },
     [refreshRelationships]
   )
 
   // 表格列定义
-  const columns: DataTableColumn<Relationship>[] = [
-    { key: 'subject_type', header: '主体类型', width: 100, render: row => row.subject_type },
+  const columns: Table.Column<Relationship>[] = [
+    {
+      key: 'subject_type',
+      header: '主体类型',
+      width: 100,
+      render: (_value, row) => row.subject_type,
+    },
     {
       key: 'subject_id',
       header: '主体 ID',
       width: 150,
-      render: row => (
+      render: (_value, row) => (
         <code className="block max-w-40 truncate" title={row.subject_id}>
           {row.subject_id}
         </code>
       ),
     },
-    { key: 'relation', header: '关系', width: 100, render: row => row.relation },
-    { key: 'object_type', header: '对象类型', width: 100, render: row => row.object_type },
+    { key: 'relation', header: '关系', width: 100, render: (_value, row) => row.relation },
+    {
+      key: 'object_type',
+      header: '对象类型',
+      width: 100,
+      render: (_value, row) => row.object_type,
+    },
     {
       key: 'object_id',
       header: '对象 ID',
       width: 150,
-      render: row => (
+      render: (_value, row) => (
         <code className="block max-w-40 truncate" title={row.object_id}>
           {row.object_id}
         </code>
@@ -395,7 +441,7 @@ function GraphCanvas() {
       key: 'expires_at',
       header: '过期时间',
       width: 160,
-      render: row => {
+      render: (_value, row) => {
         if (!row.expires_at) return '—'
         const expiring = isExpiringSoon(row.expires_at)
         return (
@@ -409,7 +455,7 @@ function GraphCanvas() {
       key: 'actions',
       header: '操作',
       width: 80,
-      render: row => (
+      render: (_value, row) => (
         <Button
           type="button"
           variant="ghost"
@@ -425,11 +471,12 @@ function GraphCanvas() {
   ]
 
   const loading = servicesLoading || applicationsLoading || groupsLoading
+  const sourceError = servicesError || applicationsError || groupsError
 
   return (
     <div className={`${styles.graphPage} ${isFullscreen ? styles.fullscreen : ''}`}>
       <CanvasHeader
-        services={services?.items ?? []}
+        services={services ?? []}
         selectedServiceId={selectedServiceId}
         onServiceChange={setSelectedServiceId}
         onSave={handleSave}
@@ -445,15 +492,31 @@ function GraphCanvas() {
       <div className={styles.graphContainer}>
         {/* 左侧节点面板 */}
         <div className={styles.sidePanel}>
-          {loading ? (
+          {sourceError ? (
+            <Alert
+              variant="error"
+              title="图谱资源加载失败"
+              action={
+                <Button
+                  onClick={() => {
+                    refreshServices()
+                    refreshApplications()
+                    refreshGroups()
+                  }}
+                >
+                  重试
+                </Button>
+              }
+            />
+          ) : loading ? (
             <div className={styles.loading}>
               <Spinner />
             </div>
           ) : (
             <AddNodes
               users={users}
-              groups={groups?.items ?? []}
-              applications={applications?.items ?? []}
+              groups={(groups ?? []).filter(group => group.service_id === selectedServiceId)}
+              applications={applications ?? []}
               onDragStart={handleDragStart}
             />
           )}
@@ -484,23 +547,25 @@ function GraphCanvas() {
       </div>
 
       {/* 下方数据表格 */}
-      <Card className={styles.tableCard}>
-        <CardHeader>
-          <CardTitle className="text-base">关系明细</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {relationshipsLoading ? (
-            <div className="flex min-h-32 items-center justify-center">
-              <Spinner />
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={relationshipItems}
-              rowKey={r => `${r.service_id}:${r.subject_id}:${r.relation}:${r.object_id}`}
-            />
-          )}
-        </CardContent>
+      <Card className={styles.tableCard} header={{ title: '关系明细' }}>
+        {relationshipsError ? (
+          <Alert
+            variant="error"
+            title="关系数据加载失败"
+            action={<Button onClick={refreshRelationships}>重试</Button>}
+          />
+        ) : relationshipsLoading ? (
+          <div className="flex min-h-32 items-center justify-center">
+            <Spinner />
+          </div>
+        ) : (
+          <Table
+            columns={columns}
+            data={relationshipItems}
+            pagination={false}
+            rowKey={r => `${r.service_id}:${r.subject_id}:${r.relation}:${r.object_id}`}
+          />
+        )}
       </Card>
 
       {/* 创建关系对话框 */}
@@ -515,16 +580,13 @@ function GraphCanvas() {
           setPendingConnection(null)
         }}
       />
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除关系</DialogTitle>
-            <DialogDescription>
-              确定删除 {pendingDelete?.subject_id} → {pendingDelete?.object_id} 的“
-              {pendingDelete?.relation}”关系？
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除关系"
+        description={`确定删除 ${pendingDelete?.subject_id ?? ''} → ${pendingDelete?.object_id ?? ''} 的“${pendingDelete?.relation ?? ''}”关系？`}
+        footer={
+          <>
             <Button type="button" variant="outline" onClick={() => setPendingDelete(null)}>
               取消
             </Button>
@@ -535,17 +597,17 @@ function GraphCanvas() {
               onClick={async () => {
                 if (!pendingDelete) return
                 setDeleting(true)
-                await handleDeleteRelation(pendingDelete)
+                const deleted = await handleDeleteRelation(pendingDelete)
                 setDeleting(false)
-                setPendingDelete(null)
+                if (deleted) setPendingDelete(null)
               }}
             >
               <Trash2 />
               删除
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </div>
   )
 }

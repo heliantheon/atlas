@@ -1,121 +1,56 @@
-import { useMemo } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AppWindow, ScrollText, Server, ShieldCheck, Search, Users } from 'lucide-react'
-import { Breadcrumb } from '@atlas/ui/breadcrumb'
-import { PRODUCT_BRAND_COLORS } from '@atlas/ui/brand-colors'
-import { Header } from '@atlas/ui/header'
-import { MainLayout } from '@atlas/ui/main-layout'
-import { Sidebar, type SidebarMenuItem } from '@atlas/ui/sidebar'
+import { Navigate, useParams } from 'react-router-dom'
+import {
+  AppWindow,
+  Gauge,
+  ScrollText,
+  Search,
+  Server,
+  Settings2,
+  ShieldCheck,
+  Users,
+} from 'lucide-react'
+import { OperationsShell, type OperationsNavItem } from '@atlas/ui/operations-shell'
 import { UserMenu } from '@atlas/ui/user-menu'
 import { DomainContext } from '@/contexts/DomainContext'
 import { DomainSwitcher } from '@/components/DomainSwitcher'
+import styles from './index.module.scss'
 
-const BRAND_COLOR = PRODUCT_BRAND_COLORS.hermes
-
-function buildMenus(basePath: string): SidebarMenuItem[] {
+function buildNav(base: string): OperationsNavItem[] {
   return [
+    { label: '域概览', path: base, icon: <Gauge />, section: '当前域', end: true },
+    { label: '应用', path: `${base}/applications`, icon: <AppWindow /> },
+    { label: '服务', path: `${base}/services`, icon: <Server /> },
+    { label: '用户组', path: `${base}/groups`, icon: <Users /> },
     {
-      key: 'applications',
-      label: '应用管理',
-      icon: <AppWindow />,
-      path: `${basePath}/applications`,
-    },
-    {
-      key: 'services',
-      label: '服务管理',
-      icon: <Server />,
-      path: `${basePath}/services`,
-    },
-    {
-      key: 'users',
-      label: '用户查询',
-      icon: <Search />,
-      path: `${basePath}/users`,
-    },
-    {
-      key: 'groups',
-      label: '用户组',
-      icon: <Users />,
-      path: `${basePath}/groups`,
-    },
-    {
-      key: 'relationships',
       label: '权限关系',
+      path: `${base}/relationships`,
       icon: <ShieldCheck />,
-      path: `${basePath}/relationships`,
+      section: '访问控制',
     },
-    {
-      key: 'audit',
-      label: '审计信息',
-      icon: <ScrollText />,
-      path: `${basePath}/audit`,
-    },
+    { label: '域与身份源', path: `${base}/settings`, icon: <Settings2 /> },
+    { label: '用户查询', path: `${base}/users`, icon: <Search />, section: '观测' },
+    { label: '审计信息', path: `${base}/audit`, icon: <ScrollText /> },
   ]
 }
 
-function getSelectedPath(menus: SidebarMenuItem[], pathname: string, basePath: string) {
-  const paths = menus
-    .map(menu => menu.path)
-    .filter(path => path !== '/')
-    .sort((a, b) => b.length - a.length)
-
-  return paths.find(path => pathname === path || pathname.startsWith(`${path}/`)) ?? basePath
-}
-
-const hermesLogo = { text: '概览' }
-
 export function HermesLayout() {
-  const navigate = useNavigate()
-  const location = useLocation()
   const { domainId } = useParams<{ domainId: string }>()
-
-  const basePath = domainId ? `/d/${encodeURIComponent(domainId)}` : ''
-  const menus = useMemo(() => buildMenus(basePath), [basePath])
-  const selectedPath = getSelectedPath(menus, location.pathname, basePath)
-  const breadcrumbConfig = useMemo(
-    () => ({
-      appName: '首页',
-      defaultPath: basePath,
-      basePath,
-      routeNameMap: {
-        home: '概览',
-        applications: '应用管理',
-        services: '服务管理',
-        users: '用户查询',
-        groups: '用户组',
-        relationships: '权限关系',
-        audit: '审计信息',
-      },
-    }),
-    [basePath]
-  )
-  const showBreadcrumb = location.pathname !== basePath
-
   if (!domainId) return <Navigate to="/" replace />
-
+  const base = `/d/${encodeURIComponent(domainId)}`
   return (
     <DomainContext.Provider value={domainId}>
-      <MainLayout
-        renderSidebar={collapsed => (
-          <Sidebar
-            collapsed={collapsed}
-            menus={menus}
-            logo={hermesLogo}
-            brandColor={BRAND_COLOR}
-            envLabel={domainId}
-            logoActive={location.pathname === basePath}
-            onLogoClick={() => navigate(basePath)}
-            selectedKeys={[selectedPath]}
-            onMenuClick={path => navigate(path)}
-          />
-        )}
-        header={
-          <Header
-            left={<DomainSwitcher currentDomainId={domainId} />}
-            right={<UserMenu brandColor={BRAND_COLOR} showDocs />}
-          />
+      <OperationsShell
+        appName="Hermes"
+        appDescription="身份与访问控制"
+        brandMark={<img src="/hermes.svg" alt="" aria-hidden="true" />}
+        environment={domainId}
+        navItems={buildNav(base)}
+        userMenu={
+          <div className={styles.contextActions}>
+            <DomainSwitcher currentDomainId={domainId} />
+            <UserMenu brandColor="#d66b2c" showDocs />
+          </div>
         }
-        contentHeader={showBreadcrumb ? <Breadcrumb config={breadcrumbConfig} /> : null}
       />
     </DomainContext.Provider>
   )

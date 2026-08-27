@@ -1,0 +1,94 @@
+.panel {
+  padding: 1rem 0;
+}
+.panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.panel h3 {
+  margin: 0;
+  font-size: 0.86rem;
+}
+.panel header p {
+  margin: 0.3rem 0 0;
+  color: #687686;
+  font-size: 0.68rem;
+}
+.list {
+  overflow: hidden;
+  border: 1px solid #d8e0e7;
+  border-radius: 0.7rem;
+}
+.list article {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.8fr) auto minmax(10rem, 1.2fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 4.2rem;
+  padding: 0.65rem 0.8rem;
+}
+.list article + article {
+  border-top: 1px solid #edf0f3;
+}
+.list strong,
+.list code {
+  display: block;
+}
+.list strong {
+  font-size: 0.74rem;
+}
+.list code {
+  margin-top: 0.15rem;
+  color: #6b7886;
+  font-size: 0.62rem;
+}
+.list pre {
+  margin: 0;
+  color: #5e6b77;
+  font:
+    0.65rem ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+}
+.list article > div:last-child {
+  display: flex;
+  gap: 0.25rem;
+}
+.fields {
+  display: grid;
+  gap: 0.8rem;
+}
+.fields label > span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+.codeInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.state {
+  display: flex;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: #687686;
+}
+@media (max-width: 640px) {
+  .list article {
+    grid-template-columns: 1fr auto;
+  }
+  .list pre {
+    grid-column: 1;
+  }
+  .list article > div:last-child {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}

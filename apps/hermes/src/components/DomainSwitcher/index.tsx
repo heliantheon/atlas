@@ -2,23 +2,14 @@ import { useMemo, useState } from 'react'
 import { useRequest } from 'ahooks'
 import { Check, ChevronDown, LoaderCircle, Pencil, Plus, Settings2, Trash2, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Button } from '@atlas/ui/button'
 import {
+  Button,
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@atlas/ui/dialog'
-import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@atlas/ui/dropdown-menu'
-import { Spinner } from '@atlas/ui/spinner'
-import { toast } from '@atlas/ui/toast'
+  type DropdownMenuEntry,
+  Spinner,
+  toast,
+} from '@heliannuuthus/ui'
 import { domainApi } from '@/services'
 import type { Domain } from '@/types'
 import { DomainDialog, type DomainDialogState } from './DomainDialog'
@@ -95,6 +86,53 @@ export function DomainSwitcher({ currentDomainId }: DomainSwitcherProps) {
     }
   }
 
+  const menuItems: DropdownMenuEntry[] = loading
+    ? [{ label: '正在加载域…', disabled: true, icon: <Spinner aria-hidden="true" /> }]
+    : domains.length === 0
+      ? [
+          { label: '暂无可用域', disabled: true },
+          { type: 'separator' },
+          { label: '创建域', icon: <Plus />, onSelect: () => openDialog({ mode: 'create' }) },
+        ]
+      : managing
+        ? [
+            { type: 'label', label: `管理域 · ${domains.length}` },
+            ...domains.map(domain => ({
+              label: domain.name || domain.domain_id,
+              icon: domain.domain_id === currentDomainId ? <Check /> : undefined,
+              children: [
+                {
+                  label: '编辑',
+                  icon: <Pencil />,
+                  onSelect: () => openDialog({ mode: 'edit', domain }),
+                },
+                {
+                  label: '删除',
+                  icon: <Trash2 />,
+                  destructive: true,
+                  onSelect: () => {
+                    setOpen(false)
+                    setManaging(false)
+                    setPendingDelete(domain)
+                  },
+                },
+              ],
+            })),
+            { type: 'separator' },
+            { label: '新增域', icon: <Plus />, onSelect: () => openDialog({ mode: 'create' }) },
+            { label: '完成管理', icon: <X />, onSelect: () => setManaging(false) },
+          ]
+        : [
+            { type: 'label', label: `切换域 · ${domains.length}` },
+            ...domains.map(domain => ({
+              label: domain.name || domain.domain_id,
+              icon: domain.domain_id === currentDomainId ? <Check /> : undefined,
+              onSelect: () => switchDomain(domain),
+            })),
+            { type: 'separator' },
+            { label: '管理域', icon: <Settings2 />, onSelect: () => setManaging(true) },
+          ]
+
   return (
     <>
       <DropdownMenu
@@ -103,8 +141,7 @@ export function DomainSwitcher({ currentDomainId }: DomainSwitcherProps) {
           setOpen(nextOpen)
           if (!nextOpen) setManaging(false)
         }}
-      >
-        <DropdownMenuTrigger asChild>
+        trigger={
           <Button
             type="button"
             variant="ghost"
@@ -114,126 +151,11 @@ export function DomainSwitcher({ currentDomainId }: DomainSwitcherProps) {
             <span className={styles.triggerName}>Hermes 管理后台</span>
             <ChevronDown className={styles.chevron} aria-hidden="true" />
           </Button>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent
-          align="start"
-          sideOffset={6}
-          className={styles.menu}
-          data-managing={managing ? 'true' : 'false'}
-        >
-          <section className={styles.switchPanel} aria-label={managing ? '管理域' : '切换域'}>
-            <div className={styles.panelHeader}>
-              <div>
-                <strong>{managing ? '管理域' : '切换域'}</strong>
-                <span>{domains.length} 个可用域</span>
-              </div>
-              {managing ? (
-                <div className={styles.manageActions}>
-                  <DropdownMenuItem
-                    className={styles.headerAction}
-                    onSelect={() => openDialog({ mode: 'create' })}
-                  >
-                    <Plus />
-                    新增
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className={styles.headerAction}
-                    onSelect={event => {
-                      event.preventDefault()
-                      setManaging(false)
-                    }}
-                  >
-                    <X />
-                    取消
-                  </DropdownMenuItem>
-                </div>
-              ) : (
-                <DropdownMenuItem
-                  className={styles.headerAction}
-                  onSelect={event => {
-                    event.preventDefault()
-                    setManaging(true)
-                  }}
-                >
-                  <Settings2 />
-                  管理
-                </DropdownMenuItem>
-              )}
-            </div>
-            <div className={styles.domainList}>
-              {loading ? (
-                <div className={styles.loading}>
-                  <Spinner label="正在加载域" />
-                </div>
-              ) : domains.length === 0 ? (
-                <p className={styles.empty}>暂无可用域</p>
-              ) : (
-                domains.map(domain => {
-                  const isCurrent = domain.domain_id === currentDomainId
-
-                  if (managing) {
-                    return (
-                      <div
-                        key={domain.domain_id}
-                        className={`${styles.domainItem} ${styles.manageDomainItem}`}
-                        data-current={isCurrent ? 'true' : 'false'}
-                      >
-                        <span className={styles.domainIdentity}>
-                          <span className={styles.domainName}>
-                            {domain.name || domain.domain_id}
-                          </span>
-                          <span className={styles.domainId}>{domain.domain_id}</span>
-                        </span>
-                        <div className={styles.domainActions}>
-                          <DropdownMenuItem
-                            className={styles.domainAction}
-                            aria-label={`编辑域 ${domain.name || domain.domain_id}`}
-                            onSelect={() => openDialog({ mode: 'edit', domain })}
-                          >
-                            <Pencil />
-                            编辑
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className={styles.domainAction}
-                            variant="destructive"
-                            aria-label={`删除域 ${domain.name || domain.domain_id}`}
-                            onSelect={() => {
-                              setOpen(false)
-                              setManaging(false)
-                              setPendingDelete(domain)
-                            }}
-                          >
-                            <Trash2 />
-                            删除
-                          </DropdownMenuItem>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  return (
-                    <DropdownMenuItem
-                      key={domain.domain_id}
-                      className={styles.domainItem}
-                      data-current={isCurrent ? 'true' : 'false'}
-                      onSelect={() => switchDomain(domain)}
-                    >
-                      <span className={styles.domainIdentity}>
-                        <span className={styles.domainName}>{domain.name || domain.domain_id}</span>
-                        <span className={styles.domainId}>{domain.domain_id}</span>
-                      </span>
-                      {isCurrent ? (
-                        <Check className={styles.currentIcon} aria-label="当前域" />
-                      ) : null}
-                    </DropdownMenuItem>
-                  )
-                })
-              )}
-            </div>
-          </section>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        }
+        items={menuItems}
+        align="start"
+        classNames={{ content: styles.menu }}
+      />
 
       <DomainDialog
         state={dialogState}
@@ -241,16 +163,13 @@ export function DomainSwitcher({ currentDomainId }: DomainSwitcherProps) {
         onSaved={handleSaved}
       />
 
-      <Dialog open={pendingDelete !== null} onOpenChange={open => !open && setPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除域</DialogTitle>
-            <DialogDescription>
-              确定删除“{pendingDelete?.name || pendingDelete?.domain_id}
-              ”？域内应用、服务和配置将一并删除，此操作无法撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={open => !open && setPendingDelete(null)}
+        title="删除域"
+        description={`确定删除“${pendingDelete?.name || pendingDelete?.domain_id || ''}”？域内应用、服务和配置将一并删除，此操作无法撤销。`}
+        footer={
+          <>
             <Button
               type="button"
               variant="outline"
@@ -263,9 +182,9 @@ export function DomainSwitcher({ currentDomainId }: DomainSwitcherProps) {
               {deleting ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : null}
               删除域
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
     </>
   )
 }

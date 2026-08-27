@@ -1,7 +1,5 @@
 import { LoaderCircle, Maximize2, Minimize2, RefreshCw, Save } from 'lucide-react'
-import { Badge } from '@atlas/ui/badge'
-import { Button } from '@atlas/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@atlas/ui/select'
+import { Button, Select, Tag } from '@heliannuuthus/ui'
 import type { Service } from '@/types'
 import styles from './index.module.scss'
 
@@ -32,18 +30,16 @@ export function CanvasHeader(props: CanvasHeaderProps) {
       </div>
       <div className={styles.headerRight}>
         {!props.isLocked ? (
-          <Select value={props.selectedServiceId} onValueChange={props.onServiceChange}>
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="选择服务" />
-            </SelectTrigger>
-            <SelectContent>
-              {props.services.map(service => (
-                <SelectItem key={service.service_id} value={service.service_id}>
-                  {service.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Select
+            value={props.selectedServiceId ?? null}
+            onChange={value => props.onServiceChange(value ?? undefined)}
+            placeholder="选择服务"
+            classNames={{ trigger: 'w-52' }}
+            options={props.services.map(service => ({
+              label: service.name,
+              value: service.service_id,
+            }))}
+          />
         ) : null}
         <Button type="button" variant="outline" title="重置画布" onClick={props.onReset}>
           <RefreshCw />
@@ -56,9 +52,9 @@ export function CanvasHeader(props: CanvasHeaderProps) {
         >
           {props.saving ? <LoaderCircle className="animate-spin" /> : <Save />}保存
           {props.isDirty ? (
-            <Badge variant="secondary" className="ml-1 px-1.5">
+            <Tag type="warning" className="ml-1 px-1.5">
               未保存
-            </Badge>
+            </Tag>
           ) : null}
         </Button>
         <Button
