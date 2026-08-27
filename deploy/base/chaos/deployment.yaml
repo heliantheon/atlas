@@ -21,8 +21,6 @@ spec:
     spec:
       serviceAccountName: chaos-ui
       automountServiceAccountToken: false
-      imagePullSecrets:
-        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 101
