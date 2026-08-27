@@ -43,6 +43,7 @@ pnpm format:check
 ## UI 与架构规则
 
 - 新页面优先落在对应 `apps/<domain>/`，跨 app 的非 UI 能力放 `packages/shared`；领域无关基础组件统一来自独立 `@heliannuuthus/ui`。
+- Kubernetes 期望状态只属于私有 `heliantheons/applications` 仓库；本公共仓库只维护应用源码、镜像构建和容器内部配置。
 - 开发 UI 前先检查 `@heliannuuthus/ui`。缺少基础组件或 API 能力时，先在 workspace 的独立 `ui/` 仓库新增或扩展、文档化并验证，再升级 Atlas 依赖；禁止在 `packages/ui` 或 app 内复制 primitive。
 - 业务代码通过 `@heliannuuthus/ui/button`、`@heliannuuthus/ui/dialog` 等显式子路径导入。`packages/ui` 仅保留 Atlas 领域组合或迁移期历史代码，新代码不得扩大其基础组件公共面。
 - 公共组件 API 对标 Ant Design 的成熟度与扩展性，但不得依赖或模拟 Ant Design；Radix、CVA、Tailwind 与 shadcn 来源仍是 `@heliannuuthus/ui` 的实现细节。
