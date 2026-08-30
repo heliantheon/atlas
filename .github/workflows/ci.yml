@@ -43,9 +43,9 @@ jobs:
     with:
       version: '${{ needs.ci.outputs.version }}'
       updates: |
-        apps/atlas/release-atlas.yaml=ghcr.io/heliantheons/atlas
-        apps/atlas/release-hermes-ui.yaml=ghcr.io/heliantheons/hermes-ui
-        apps/atlas/release-chaos-ui.yaml=ghcr.io/heliantheons/chaos-ui
+        deploy/01/atlas/release-atlas.yaml=ghcr.io/heliantheons/atlas
+        deploy/01/atlas/release-hermes-ui.yaml=ghcr.io/heliantheons/hermes-ui
+        deploy/01/atlas/release-chaos-ui.yaml=ghcr.io/heliantheons/chaos-ui
       gitops_app_id: '4727462'
     secrets:
       gitops_app_private_key: '${{ secrets.GITOPS_APP_PRIVATE_KEY }}'
